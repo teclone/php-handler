@@ -75,6 +75,66 @@ class Handler
     */
     private $_db_checks = [];
 
+
+    /**
+     * sets error message for a given field
+     *
+     *@param string $field - the field
+     *@param string $err - the error message
+     *@return self
+    */
+    protected function setError(string $field, string $err)
+    {
+        $this->_errors[$field] = $err;
+        return $this;
+    }
+
+    /**
+     * checks if the given field is missing
+     *
+     *@return bool
+    */
+    protected function fieldIsMissing(string $field)
+    {
+        $source = &$this->_source;
+        $is_missing = true;
+        if (isset($source[$field]) && $source[$field] !== '')
+        {
+            $is_missing = false;
+            $values = $source[$field];
+            if (is_array($values))
+            {
+                $source[$field] = [];
+                foreach($values as $value)
+                {
+                    if (!is_null($value) && $value !== '')
+                        $source[$field][] = $value;
+                }
+
+                if (count($source[$field]) === 0)
+                    $is_missing = true;
+            }
+        }
+        return $is_missing;
+    }
+
+    /**
+     * checks for missing fields
+     *
+     *@return bool
+    */
+    protected function checkMissingFields()
+    {
+        foreach($this->_required_fields as $field)
+        {
+            if ($this->fieldIsMissing($field))
+            {
+                $this->setError($field, $this->_hints[$field]);
+            }
+        }
+        return $this->succeeds();
+    }
+
     /**
      * resolves options
      *
@@ -283,6 +343,10 @@ class Handler
             $this->processRules();
 
             $this->resolveOptions($this->_hints); //resolve hints
+            if ($this->checkMissingFields())
+            {
+
+            }
         }
 
         return $this->succeeds();
