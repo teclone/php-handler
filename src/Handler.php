@@ -75,6 +75,58 @@ class Handler
     */
     private $_db_checks = [];
 
+    /**
+     * resolves options
+     *
+     *@param string $field - the option field key
+     *@param array|string option - the option to resolve
+    */
+    protected function resolveOption(string $field, $option)
+    {
+        if (is_array($option))
+        {
+            foreach($option as $key => $value)
+                $option[$key] = $this->resolveOption($field, $value);
+
+            return $option;
+        }
+
+        $value = preg_replace_callback('/\{\s*([^}]+)\s*\}/', function($matches) use ($field) {
+            $capture = $matches[1];
+            switch(strtolower($capture))
+            {
+                case '_this':
+                    return $field;
+
+                case 'current_timestamp':
+                case 'current_datetime':
+                case 'current_date':
+                    return '' . new DateTime();
+
+                case 'now':
+                case 'timestamp':
+                case 'current_time':
+                    return time();
+
+                default:
+                    return Util::value($capture, $this->_data, $matches[0]);
+            }
+        }, $option);
+        return $value;
+    }
+
+    /**
+     * resolves options.
+     *
+     *@param array options - the options to resolve
+    */
+    protected function resolveOptions(array &$options)
+    {
+        foreach($options as $field => $option)
+            $options[$field] = $this->resolveOption($field, $option);
+
+        return $options;
+    }
 
     /**
      * resolves the rule type
@@ -229,6 +281,8 @@ class Handler
         {
             $this->_executed = true;
             $this->processRules();
+
+            $this->resolveOptions($this->_hints); //resolve hints
         }
 
         return $this->succeeds();
