@@ -31,6 +31,25 @@ class Handler
     private $_validator = null;
 
     /**
+     * returns boolean indicating if the execute call should proceed
+     *@return bool
+    */
+    protected function shouldExecute()
+    {
+        if (!$this->_executed)
+        {
+            if (empty($this->_source))
+                throw new DataNotFoundException('no data found to proccess');
+
+            if (empty($this->_rules))
+                throw new RuleNotFoundException('no validation rules set');
+
+            return true;
+        }
+        return false;
+    }
+
+    /**
      *@param string|array $source - the data source
      *@param array $rules - rules to be applied on data
     */
@@ -102,5 +121,65 @@ class Handler
     {
         $this->_validator = $validator;
         $this->_validator->setErrorBag($this->_errors);
+    }
+
+    /**
+     * executes the handler
+     *
+     *@return bool
+    */
+    public function execute()
+    {
+        if ($this->shouldExecute())
+        {
+            $this->_executed = true;
+        }
+
+        return $this->succeeds();
+    }
+
+    /**
+     * returns boolean value indicating if the handling went successful
+     *
+     *@return bool
+    */
+    public function succeeds()
+    {
+        return $this->_executed && count($this->_errors) === 0;
+    }
+
+    /**
+     * returns boolean value indicating if the handling failed
+     *
+     *@return bool
+    */
+    public function fails()
+    {
+        return !$this->succeeds();
+    }
+
+    /**
+     * returns the error string for the given key if it exists, or null
+     *
+     *@return string|null
+    */
+    public function getError(string $key)
+    {
+        if (array_key_exists($key, $this->_errors))
+            return $this->_errors[$key];
+        else
+            return null;
+    }
+
+    /**
+     * returns the data for the given key if it exists, or null
+     *@return string|null
+    */
+    public function getData(string $key)
+    {
+        if (array_key_exists($key, $this->_data))
+            return $this->_data[$key];
+        else
+            return null;
     }
 }
