@@ -90,6 +90,96 @@ class Handler
     }
 
     /**
+     * runs data filteration on the given value
+     *
+     *@param array|string|null $value - the value or array of values
+     *@param array $filters - array of filters
+     *@return mixed
+    */
+    protected function filterValue($value, array $filters)
+    {
+        if (is_array($value))
+        {
+            $filtered_values = [];
+            foreach($value as $current)
+            {
+                $filtered_values[] = $this->filterValue($current, $filters);
+            }
+            return $filtered_values;
+        }
+
+        $value = strval($value);
+
+        if (Util::keyNotSetOrTrue('decode', $filters))
+            $value = urldecode($value);
+
+        if (Util::keyNotSetOrTrue('trim', $filters))
+            $value = trim($value);
+
+        if (Util::keyNotSetOrTrue('stripTags', $filters))
+            $value = strip_tags($value);
+
+        switch(strtolower($filters['type']))
+        {
+            case 'email':
+                $value = filter_var($value, FILTER_SANITIZE_EMAIL);
+                break;
+            case 'url';
+                $value = filter_var($value, FILTER_SANITIZE_URL);
+                break;
+            case 'int':
+            case 'positiveint':
+            case 'negativeint':
+                if (Util::isNumeric($value))
+                    $value = intval($value);
+                break;
+            case 'float':
+            case 'positivefloat':
+            case 'negativefloat':
+                if (Util::isNumeric($value))
+                    $value = floatval($value);
+                break;
+            case 'bool':
+                if (preg_match('/^false|off|0|nil|null|no|undefined$/i', $value) || $value = '')
+                    $value = false;
+                else
+                    $value = true;
+                break;
+
+        }
+        return $value;
+    }
+
+    /**
+     * gets the fields
+    */
+    protected function getFields()
+    {
+        //start with required fields
+        foreach ($this->_required_fields as $field) {
+            $value = $this->_source[$field];
+            $filters = $this->_filters[$field];
+            $this->_data[$field] = $this->filterValue($value, $filters);
+        }
+
+        //resolve default fields
+        $this->resolveOptions($this->_default_values);
+
+        //get optional fields
+        foreach ($this->_optional_fields as $field) {
+            //if the optional field is missing, pick its default value
+            $value = null;
+            if ($this->fieldIsMissing($field))
+                $value = $this->_default_values[$field];
+            else
+                $value = $this->_source[$field];
+
+            $filters = $this->_filters[$field];
+            $this->_data[$field] = $this->filterValue($value, $filters);
+        }
+    }
+
+    /**
      * checks if the given field is missing
      *
      *@return bool
@@ -345,7 +435,10 @@ class Handler
             $this->resolveOptions($this->_hints); //resolve hints
             if ($this->checkMissingFields())
             {
+                $this->getFields();
 
+                $this->resolveOptions($this->_rule_options);
+                $this->resolveOptions($this->_db_checks);
             }
         }
 
