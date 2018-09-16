@@ -31,6 +31,101 @@ class Handler
     private $_validator = null;
 
     /**
+     * boolean value indicating if the execute method has been called
+    */
+    private $_executed = false;
+
+    /**
+     * array of required fields
+    */
+    private $_required_fields = [];
+
+    /**
+     * error hints for required fields
+    */
+    private $_hints = [];
+
+    /**
+     * array of optional fields
+    */
+    private $_optional_fields = [];
+
+    /**
+     * array of default values for optional fields
+    */
+    private $_default_values = [];
+
+    /**
+     * array of filters for the fields
+    */
+    private $_filters = [];
+
+    /**
+     * array of rule options for the fields
+    */
+    private $_rule_options = [];
+
+    /**
+     * array containing found errors
+    */
+    private $_errors = [];
+
+    /**
+     * array of database checks for the fields
+    */
+    private $_db_checks = [];
+
+
+    /**
+     * resolves the rule type
+     *
+     *@param string $type - the rule type
+     *@return string
+    */
+    protected function resolveType(string $type)
+    {
+        return preg_replace([
+            '/integer/i',
+            '/number/i',
+            '/boolean/i',
+            '/string/i'
+        ], [
+            'int',
+            'float',
+            'bool',
+            'text'
+        ], $type);
+    }
+
+    /**
+     * processes the rules, extracting the portions as the need be
+    */
+    protected function processRules()
+    {
+        foreach($this->_rules as $field => $rule)
+        {
+            if (Util::keyNotSetOrTrue('required', $rule))
+            {
+                $this->_required_fields[] = $field;
+                $this->_hints[$field] = Util::value('hint', $rule, $field . ' is required');
+            }
+            else
+            {
+                $this->_optional_fields[] = $field;
+                $this->_default_values[$field] = Util::value('default', $rule);
+            }
+
+            $this->_db_checks[$field] = Util::arrayValue('checks', $rule);
+            $this->_filters[$field] = Util::arrayValue('filters', $rule);
+            $this->_rule_options[$field] = Util::arrayValue('options', $rule);
+
+            $type = Util::value('type', $rule, 'text');
+            $this->_rule_options[$field]['type'] = $this->_filters[$field]['type'] =
+                $this->resolveType($type);
+        }
+    }
+
+    /**
      * returns boolean indicating if the execute call should proceed
      *@return bool
     */
@@ -133,6 +228,7 @@ class Handler
         if ($this->shouldExecute())
         {
             $this->_executed = true;
+            $this->processRules();
         }
 
         return $this->succeeds();
