@@ -36,4 +36,10 @@ interface ValidatorInterface
 
     /** negative float validation interface */
     public function validateNFloat(bool $required, string $field, $value, array $options): bool;
+
+    /** email validation interface */
+    public function validateEmail(bool $required, string $field, $value, array $options): bool;
+
+    /** url validation interface */
+    public function validateURL(bool $required, string $field, $value, array $options): bool;
 }
