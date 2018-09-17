@@ -9,6 +9,7 @@ use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
 use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
 use Forensic\Handler\Exceptions\DataNotFoundException;
+use PHPUnit\Framework\Error\Warning;
 
 class HandlerTest extends TestCase
 {
@@ -422,5 +423,25 @@ class HandlerTest extends TestCase
         //test that it throws error if key does not exist
         $this->expectException(DataNotFoundException::class);
         $instance->middle_name;
+    }
+
+    public function testUnknownDataTypeWarning()
+    {
+        $data = [
+            'first-name' => 'Harrison',
+            'last_name' => 'Ifeanyichukwu'
+        ];
+        $rules = [
+            'first-name' => [
+                'type' => 'unknown'
+            ],
+            'last_name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+
+        $this->expectException(Warning::class);
+        $instance->execute();
     }
 }
