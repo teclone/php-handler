@@ -122,6 +122,38 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating min limit rule
+    */
+    public function minLimitRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'min' => 10,
+                    'minErr' => '{_this} should be at least 10 characters long'
+                ],
+                [
+                    'first_name should be at least 10 characters long',
+                ],
+            ],
+            'set 2' => [
+                'validateDate',
+                'start_date',
+                ['2018-01-01'],
+                [
+                    'min' => new DateTime(),
+                ],
+                [
+                    'start_date should not be less than ' . new DateTime(),
+                ],
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -199,6 +231,14 @@ class ValidatorTest extends TestCase
      *@dataProvider typeRulesTestDataProvider
     */
     public function testTypeRules(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider minLimitRuleTestDataProvider
+    */
+    public function testMinLimitRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
