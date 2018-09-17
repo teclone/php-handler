@@ -303,7 +303,7 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateText(bool $required, string $field, $value, array $options)
+    public function validateText(bool $required, string $field, $value, array $options): bool
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
@@ -318,6 +318,56 @@ class Validator implements ValidatorInterface
             //check bad formats
             if ($this->succeeds())
                 $this->checkBadFormatRules($value, Util::arrayValue('badFormats', $options));
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates date
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateDate(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            //check date format
+            $format = '/^([0-9]{4})([-._:|\/\t])?([0-9]{1,2})\2?([0-9]{1,2})$/';
+            $date = null;
+            if (preg_match($format, $value, $matches))
+            {
+                $year = intval($matches[1]);
+                $month = intval($matches[3]);
+                $day = intval($matches[4]);
+
+                //check date validity
+                if (checkdate($month, $day, $year))
+                {
+                    $date_tokens = [$year, $month, $day];
+                    $date = new DateTime(implode('-', $date_tokens));
+                }
+                else
+                {
+                    $this->setError(
+                        Util::value('err', $options, '{this} is not a valid date'),
+                        $value
+                    );
+                }
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('formatErr', $options, '{this} is not a valid date format'),
+                    $value
+                );
+            }
+
+            //validate the limiting rules
+            if (!is_null($date))
+                $this->checkLimitingRules($value, $date, function($value) {
+                    return $value instanceof DateTime? $value : new DateTime($value);
+                });
         }
         return $this->succeeds();
     }
