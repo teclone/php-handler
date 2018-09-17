@@ -123,7 +123,7 @@ class Handler
                 $method = 'validateFloat';
                 break;
             case 'pfloat':
-                $method = 'validateNFloat';
+                $method = 'validatePFloat';
                 break;
             case 'nfloat':
                 $method = 'validateNFloat';
@@ -563,12 +563,17 @@ class Handler
      *
      *@return string|null
     */
-    public function getError(string $key)
+    public function getError(string $key = null)
     {
-        if (array_key_exists($key, $this->_errors))
-            return $this->_errors[$key];
-        else
-            return null;
+        if (count($this->_errors) > 0)
+        {
+            if (!is_null($key) && array_key_exists($key, $this->_errors))
+                return $this->_errors[$key];
+
+            else if (is_null($key))
+                return current($this->_errors);
+        }
+        return null;
     }
 
     /**
