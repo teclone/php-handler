@@ -6,8 +6,9 @@ namespace Forensic\Handler\Test;
 use Forensic\Handler\Handler;
 use PHPUnit\Framework\TestCase;
 use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
+use Forensic\Handler\Exceptions\DataSourceNotSetException;
+use Forensic\Handler\Exceptions\RulesNotSetException;
 use Forensic\Handler\Exceptions\DataNotFoundException;
-use Forensic\Handler\Exceptions\RuleNotFoundException;
 
 class HandlerTest extends TestCase
 {
@@ -269,7 +270,7 @@ class HandlerTest extends TestCase
     */
     public function testExecuteWithNoDataSet()
     {
-        $this->expectException(DataNotFoundException::class);
+        $this->expectException(DataSourceNotSetException::class);
         $instance = new Handler();
         $instance->execute();
     }
@@ -279,7 +280,7 @@ class HandlerTest extends TestCase
     */
     public function testExecuteWithNoRulesSet()
     {
-        $this->expectException(RuleNotFoundException::class);
+        $this->expectException(RulesNotSetException::class);
         $instance = new Handler($this->getSimpleData());
         $instance->execute();
     }
@@ -382,9 +383,44 @@ class HandlerTest extends TestCase
         $this->assertTrue($instance->succeeds());
 
         //test that the get data method returns correctly the data for the given key
-        $this->assertEquals('Harrison', $instance->getData());
+        $this->assertEquals('Harrison', $instance->getData('first-name'));
 
-        //test that it returns null for unknown key
-        $this->assertNull($instance->getData('last-name'));
+        //test that it throw exception if key is not known
+        $this->expectException(DataNotFoundException::class);
+        $instance->getData('last-name');
+    }
+
+    /**
+     * test the getter method
+    */
+    public function testGetterMethod()
+    {
+        $data = [
+            'first-name' => 'Harrison',
+            'last_name' => 'Ifeanyichukwu'
+        ];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+            'last_name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+
+        //test that we can access data directly on the instance
+        $this->assertEquals('Ifeanyichukwu', $instance->last_name);
+
+        //test that we can still access hyphen named data using underscores directly on the
+        //instance
+        $this->assertEquals('Harrison', $instance->first_name);
+
+        //test that it throws error if key does not exist
+        $this->expectException(DataNotFoundException::class);
+        $instance->middle_name;
     }
 }
