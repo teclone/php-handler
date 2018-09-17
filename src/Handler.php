@@ -90,6 +90,86 @@ class Handler
     }
 
     /**
+     * runs validation on the given field whose value is the given value
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@param string $field - field to validate
+     *@param mixed $value - field value
+     *@param array $options - the rule options
+     *@return bool
+    */
+    protected function runValidation(bool $required, string $field, $value, array $options)
+    {
+        $validator = $this->_validator;
+        $method = null;
+        switch(strtolower($options['type']))
+        {
+            case 'text':
+                $method = 'validateText';
+                break;
+            case 'date':
+                $method = 'validateDate';
+                break;
+            case 'int':
+                $method = 'validateInteger';
+                break;
+            case 'pint':
+                $method = 'validatePInteger';
+                break;
+            case 'nint':
+                $method = 'validateNInteger';
+                break;
+            case 'float':
+                $method = 'validateFloat';
+                break;
+            case 'pfloat':
+                $method = 'validateNFloat';
+                break;
+            case 'nfloat':
+                $method = 'validateNFloat';
+                break;
+            case 'bool':
+                $method = '';
+                break;
+        }
+
+        if ($method)
+            $validator->{$method}(
+                $required,
+                $field,
+                $value,
+                $options
+            );
+        else if (is_null($method))
+            trigger_error(
+                $options['type'] . ' is not a recognised validation type',
+                E_USER_WARNING
+            );
+
+        return $validator->succeeds();
+    }
+
+    /**
+     * validate the fields
+     *
+     *@param array $fields - the array of fields to validate
+     *@param bool $required - boolean value indicating if field is required
+    */
+    protected function validateFields(array $fields, bool $required)
+    {
+        foreach($fields as $field)
+        {
+            $rules = $this->_rule_options[$field];
+            $values = Util::makeArray($this->_data[$field]);
+            foreach($values as $value)
+            {
+                if (!$this->runValidation($required, $field, $value, $rules))
+                    break; //break on first error
+            }
+        }
+    }
+
+    /**
      * runs data filteration on the given value
      *
      *@param array|string|null $value - the value or array of values
@@ -128,14 +208,14 @@ class Handler
                 $value = filter_var($value, FILTER_SANITIZE_URL);
                 break;
             case 'int':
-            case 'positiveint':
-            case 'negativeint':
+            case 'pint':
+            case 'nint':
                 if (Util::isNumeric($value))
                     $value = intval($value);
                 break;
             case 'float':
-            case 'positivefloat':
-            case 'negativefloat':
+            case 'pfloat':
+            case 'nfloat':
                 if (Util::isNumeric($value))
                     $value = floatval($value);
                 break;
@@ -288,11 +368,15 @@ class Handler
     {
         return preg_replace([
             '/integer/i',
+            '/positive/i',
+            '/negative/i',
             '/number/i',
             '/boolean/i',
             '/string/i'
         ], [
             'int',
+            'p',
+            'n',
             'float',
             'bool',
             'text'
@@ -439,6 +523,9 @@ class Handler
 
                 $this->resolveOptions($this->_rule_options);
                 $this->resolveOptions($this->_db_checks);
+
+                $this->validateFields($this->_required_fields, true);
+                $this->validateFields($this->_optional_fields, false);
             }
         }
 
