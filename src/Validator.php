@@ -345,7 +345,7 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             //check date format
-            $format = '/^([0-9]{4})([-._:|\/\t])?([0-9]{1,2})\2?([0-9]{1,2})$/';
+            $format = '/^([0-9]{4})([-._:|\/\s])?([0-9]{1,2})\2?([0-9]{1,2})$/';
             $date = null;
             if (preg_match($format, $value, $matches))
             {
@@ -478,7 +478,7 @@ class Validator implements ValidatorInterface
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
-            if (preg_match('/^([-+]?\d+(\.\d+)?)|(\.\d+)$/', $value))
+            if (preg_match('/^(?:[-+]?\d+(\.\d+)?|\.\d+)$/', $value))
             {
                 $float = floatval($value);
 
@@ -506,7 +506,7 @@ class Validator implements ValidatorInterface
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
-            if (preg_match('/^([+]?\d+(\.\d+)?)|(\.\d+)$/', $value))
+            if (preg_match('/^(?:\+?\d+(\.\d+)?|\.\d+)$/', $value))
             {
                 $float = floatval($value);
 
@@ -534,7 +534,7 @@ class Validator implements ValidatorInterface
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
-            if (preg_match('/^([-]\d+(\.\d+)?)$/', $value))
+            if (preg_match('/^[-]\d+(\.\d+)?$/', $value))
             {
                 $float = floatval($value);
 
