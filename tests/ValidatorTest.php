@@ -154,6 +154,38 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating max limit rule
+    */
+    public function maxLimitRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'max' => 6,
+                    'maxErr' => '{_this} should not exceed 6 characters'
+                ],
+                [
+                    'first_name should not exceed 6 characters',
+                ]
+            ],
+            'set 2' => [
+                'validateDate',
+                'start_date',
+                ['2018-01-01'],
+                [
+                    'max' => '2017-12-31',
+                ],
+                [
+                    'start_date should not be greater than 2017-12-31',
+                ]
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -239,6 +271,14 @@ class ValidatorTest extends TestCase
      *@dataProvider minLimitRuleTestDataProvider
     */
     public function testMinLimitRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider maxLimitRuleTestDataProvider
+    */
+    public function testMaxLimitRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
