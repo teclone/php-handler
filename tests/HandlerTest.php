@@ -143,4 +143,20 @@ class HandlerTest extends TestCase
         $instance = new Handler($this->getSimpleData());
         $instance->execute();
     }
+
+    /**
+     * test that it runs the execution with no errors if both data and rules are set
+    */
+    public function testExecuteWithDataAndRulesSet()
+    {
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+        $this->assertTrue($instance->fails());
+
+        $instance->execute();
+        $this->assertTrue($instance->succeeds());
+
+        //test that calling the execute method multiple times has no side effect
+        $instance->execute();
+        $this->assertTrue($instance->succeeds());
+    }
 }
