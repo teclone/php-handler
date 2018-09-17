@@ -74,6 +74,50 @@ class HandlerTest extends TestCase
     }
 
     /**
+     * provides data and rules with some fields missing
+     *
+     *@return array
+    */
+    public function missingFieldsTestDataProvider()
+    {
+        return [
+            'first set' => [
+                //data section
+                [
+                    'first_name' => 'Harrison',
+                    'languages' => array(),
+                    'hobbies' => array('programming', 'teaching', 'footballing')
+                ],
+                //rules section
+                [
+                    'first_name' => [
+                        'type' => 'text',
+                        'hint' => '{_this} is required'
+                    ],
+                    'last_name' => [
+                        'type' => 'text',
+                        'hint' => '{_this} is required'
+                    ],
+                    'languages' => [
+                        'type' => 'text',
+                        'hint' => '{_this} field is required'
+                    ],
+                    'hobbies' => [
+                        'type' => 'text',
+                    ],
+                ],
+                // is erronous
+                true,
+                //missing fields section
+                [
+                    'last_name' => 'last_name is required',
+                    'languages' => 'languages field is required',
+                ]
+            ],
+        ];
+    }
+
+    /**
      * test that we can create an instance without any argument
     */
     public function testCreateInstanceWithNoArgument()
@@ -158,5 +202,37 @@ class HandlerTest extends TestCase
         //test that calling the execute method multiple times has no side effect
         $instance->execute();
         $this->assertTrue($instance->succeeds());
+    }
+
+    /**
+     * tests for a specific handler feature
+    */
+    public function executeHandlerFeature(array $data, array $rules, bool $erroneous, array $errors)
+    {
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        if ($erroneous)
+        {
+            $this->assertTrue($instance->fails());
+            foreach ($errors as $key => $err) {
+                $this->assertEquals($err, $instance->getError($key));
+            }
+        }
+        else
+        {
+            $this->assertTrue($instance->succeeds());
+            foreach ($errors as $key => $err) {
+                $this->assertEquals($err, $instance->getData($key));
+            }
+        }
+    }
+
+    /**
+     *@dataProvider missingFieldsTestDataProvider
+    */
+    public function testMissingFields(...$args)
+    {
+        $this->executeHandlerFeature(...$args);
     }
 }
