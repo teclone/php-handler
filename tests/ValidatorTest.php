@@ -250,6 +250,40 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating regex formats rule
+    */
+    public function formatsRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'formats' => [
+                        'tests' => ['/^a/i', '/^\d/'],
+                        'err' => '{_this} should start with character "a" or with a digit'
+                    ],
+                ],
+                [
+                    'first_name should start with character "a" or with a digit',
+                ]
+            ],
+            'set 2' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'formats' => [
+                        'tests' => ['/^[a-z]/i', '/^\d/'],
+                        'err' => '{_this} should start with character "a" or with a digit'
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -359,6 +393,14 @@ class ValidatorTest extends TestCase
      *@dataProvider ltLimitRuleTestDataProvider
     */
     public function testLtLimitRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider formatsRuleTestDataProvider
+    */
+    public function testFormatsRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
