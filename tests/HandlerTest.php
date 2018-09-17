@@ -22,10 +22,16 @@ class HandlerTest extends TestCase
             'first-name' => 'Harrison',
             'last-name' => 'Ifeanyichukwu',
             'age' => 22,
+            'fav-negative-int' => '-10',
+            'fav-positive-int' => '4',
+            'fav-negative-float' => '-10.00',
+            'fav-positive-float' => '4.00',
             'password1' => 'random',
             'password2' => '',
             'timestamp' => '',
             'date-of-birth' => '',
+            'email' => 'Harrisonifeanyichukwu@gmail.com',
+            'website' => 'www.example.com'
         ];
     }
 
@@ -58,6 +64,18 @@ class HandlerTest extends TestCase
             'password1' => [
                 'type' => 'text'
             ],
+            'fav-negative-int' => [
+                'type' => 'negativeInteger',
+            ],
+            'fav-positive-int' => [
+                'type' => 'pInt',
+            ],
+            'fav-negative-float' => [
+                'type' => 'nFloat',
+            ],
+            'fav-positive-float' => [
+                'type' => 'pNumber',
+            ],
             'password2' => [
                 'required' => false,
                 'default' => '{password1}'
@@ -70,6 +88,12 @@ class HandlerTest extends TestCase
                 'required' => false,
                 'default' => '{CURRENT_DATE}'
             ],
+            'email' => [
+                'type' => 'email',
+            ],
+            'website' => [
+                'type' => 'url'
+            ]
         ];
     }
 
