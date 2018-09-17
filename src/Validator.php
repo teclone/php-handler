@@ -44,6 +44,84 @@ class Validator implements ValidatorInterface
     private $_succeeds = null;
 
     /**
+     * current field under validation
+    */
+    private $_field = null;
+
+    /**
+     * current field rule options
+    */
+    private $_options = null;
+
+    /**
+     * sets error error message
+     *
+     *@param string $err - the error message
+     *@param mixed $value - the value
+    */
+    protected function setError(string $err, $value)
+    {
+        if (!Util::isNumeric($value))
+            $value = '"' . $value . '"';
+
+        $this->_error_bag[$this->_field] = preg_replace_callback(
+            '/\{([^}]+)\}/', function($matches) use ($value) {
+            $capture = $matches[1];
+
+            switch(strtolower($capture))
+            {
+                case 'this':
+                    return $value;
+
+                case '_this':
+                    return $this->_field;
+            }
+        }, $err);
+        $this->_succeeds = false;
+        return false;
+    }
+
+    /**
+     * returns boolean indicating if validation should proceed
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@param string $field - the field to validate
+     *@param mixed $value - the field value
+     *@return bool
+    */
+    protected function shouldValidate(bool $required, string $field, &$value)
+    {
+        if (!$required && (is_null($value) || $value === ''))
+            return false;
+
+        if (is_null($value) || $value === '')
+        {
+            $this->setError('{_this} field is required', $value);
+            return false;
+        }
+
+        //cast to string
+        $value = strval($value);
+        return true;
+    }
+
+    /**
+     * resets the validator
+     *
+     *@param string $field - the next field to validate
+     *@param array $options - array of validation options
+     *@return true
+    */
+    protected function reset(string $field, array $options)
+    {
+        $this->_field = $field;
+        $this->_options = $options;
+
+        $this->_succeeds = true;
+        return true;
+    }
+
+    /**
      *@param array [$error_bag] - the error bag, passed by reference
     */
     public function __construct(array &$error_bag = [])
