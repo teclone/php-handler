@@ -82,7 +82,7 @@ class ValidatorTest extends TestCase
             'correct float set' => [
                 'validateFloat',
                 'product-number',
-                ['12.22', 0.22, '0.2333aaa'],
+                ['12.22', 0.22, '0.2333'],
             ],
             'wrong float set' => [
                 'validateFloat',
@@ -193,5 +193,13 @@ class ValidatorTest extends TestCase
                 $this->assertTrue($this->_validator->succeeds());
             }
         }
+    }
+
+    /**
+     *@dataProvider typeRulesTestDataProvider
+    */
+    public function testTypeRules(...$args)
+    {
+        $this->validationRulesTester(...$args);
     }
 }
