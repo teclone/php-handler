@@ -339,4 +339,52 @@ class HandlerTest extends TestCase
     {
         $this->executeHandlerFeature(...$args);
     }
+
+    /**
+     * test the get error method
+    */
+    public function testGetErrorMethod()
+    {
+        $data = [];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->fails());
+
+        //test that the get error method returns the first error message when given no key
+        $this->assertEquals('first-name is required', $instance->getError());
+
+        //test that it returns null for unknown key
+        $this->assertNull($instance->getError('last-name'));
+    }
+
+    /**
+     * test the get data method
+    */
+    public function testGetDataMethod()
+    {
+        $data = [
+            'first-name' => 'Harrison'
+        ];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+
+        //test that the get data method returns correctly the data for the given key
+        $this->assertEquals('Harrison', $instance->getData());
+
+        //test that it returns null for unknown key
+        $this->assertNull($instance->getData('last-name'));
+    }
 }
