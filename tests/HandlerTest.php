@@ -151,6 +151,69 @@ class HandlerTest extends TestCase
     }
 
     /**
+     *
+     *@return array
+    */
+    public function filterTestDataProvider()
+    {
+        return [
+            'first set' => [
+                //data
+                [
+                    'ages' => array('22yrs', '22.5years'),
+                    'last-name' => '',
+                    'remember-me' => 'off',
+                    'terms-and-conditions' => 'on',
+                    'fav-numbers' => array('4', '7', '10', '11'),
+                    'height' => '5.4ft',
+                    'email' => '(Harrisonifeanyichukwu@gmail.com)',
+                    'website' => 'http://www.fjsfoundations.com'
+                ],
+                //rules
+                [
+                    'ages' => [
+                        'type' => 'positiveFloat',
+                    ],
+                    'last-name' => [
+                        'required' => false,
+                    ],
+                    'remember-me' => [
+                        'type' => 'boolean'
+                    ],
+                    'terms-and-conditions' => [
+                        'type' => 'boolean'
+                    ],
+                    'fav-numbers' => [
+                        'type' => 'int'
+                    ],
+                    'height' => [
+                        'type' => 'float'
+                    ],
+                    'email' => [
+                        'type' => 'email'
+                    ],
+                    'website' => [
+                        'type' => 'url'
+                    ]
+                ],
+                //is erronous
+                false,
+                //expected
+                [
+                    'ages' => array(22, 22.5),
+                    'last-name' => null,
+                    'remember-me' => false,
+                    'terms-and-conditions' => true,
+                    'fav-numbers' => array(4, 7, 10, 11),
+                    'height' => '5.4',
+                    'email' => 'Harrisonifeanyichukwu@gmail.com',
+                    'website' => 'http://www.fjsfoundations.com'
+                ]
+            ],
+        ];
+    }
+
+    /**
      * test that we can create an instance without any argument
     */
     public function testCreateInstanceWithNoArgument()
@@ -265,6 +328,14 @@ class HandlerTest extends TestCase
      *@dataProvider missingFieldsTestDataProvider
     */
     public function testMissingFields(...$args)
+    {
+        $this->executeHandlerFeature(...$args);
+    }
+
+    /**
+     *@dataProvider filterTestDataProvider
+    */
+    public function testFilters(...$args)
     {
         $this->executeHandlerFeature(...$args);
     }
