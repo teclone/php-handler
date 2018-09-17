@@ -483,4 +483,60 @@ class Validator implements ValidatorInterface
         }
         return $this->succeeds();
     }
+
+    /**
+     * validates positive floats
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validatePFloat(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^([+]?\d+(\.\d+)?)|(\.\d+)$/', $value))
+            {
+                $float = floatval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $float);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid positive number'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates negative floats
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateNFloat(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^([-]\d+(\.\d+)?)$/', $value))
+            {
+                $float = floatval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $float);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid negative number'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
 }
