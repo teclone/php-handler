@@ -82,6 +82,82 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * runs the callback method on the given value
+     *
+     *@param mixed $value - the value
+     *@param callable $callback - the callback method
+     *@return mixed
+    */
+    protected function runCallback($value, callable $callback = null)
+    {
+        if (is_null($callback))
+            return $value;
+
+        return $callback($value);
+    }
+
+    /**
+     * checks the limiting rules such as min, max, lt, gt
+     *
+     *@param mixed $value - the value
+     *@param int|float|Datetime $actual - the actual value
+     *@param array $options - the field rules
+     *@param callback [$callback=null] - the callback method
+    */
+    protected function checkLimitingRules($value, $actual, callable $callback = null,
+        string $suffix = '')
+    {
+        $options = $this->_options;
+        //check the min limit
+        $min = Util::value('min', $options);
+        if (!is_null($min))
+        {
+            $min = $this->runCallback($min, $callback);
+            if($actual < $min)
+            {
+                $default_err = '{_this} should not be less than ' . $min . $suffix;
+                return $this->setError(Util::value('minErr',$options, $default_err), $value);
+            }
+        }
+
+        //check the max limit
+        $max = Util::value('max', $options);
+        if (!is_null($max))
+        {
+            $max = $this->runCallback($max, $callback);
+            if($actual > $max)
+            {
+                $default_err = '{_this} should not be greater than ' . $max . $suffix;
+                return $this->setError(Util::value('maxErr',$options, $default_err), $value);
+            }
+        }
+
+        //check the gt limit
+        $gt = Util::value('gt', $options);
+        if (!is_null($gt))
+        {
+            $gt = $this->runCallback($gt, $callback);
+            if($actual <= $gt)
+            {
+                $default_err = '{_this} should be greater than ' . $gt . $suffix;
+                return $this->setError(Util::value('gtErr',$options, $default_err), $value);
+            }
+        }
+
+        //check the lt limit
+        $lt = Util::value('lt', $options);
+        if (!is_null($lt))
+        {
+            $lt = $this->runCallback($lt, $callback);
+            if($actual >= $lt)
+            {
+                $default_err = '{_this} should be less than ' . $lt . $suffix;
+                return $this->setError(Util::value('ltErr',$options, $default_err), $value);
+            }
+        }
+    }
+
+    /**
      * returns boolean indicating if validation should proceed
      *
      *@param bool $required - boolean indicating if field is required
@@ -168,5 +244,22 @@ class Validator implements ValidatorInterface
     public function fails(): bool
     {
         return !$this->succeeds();
+    }
+
+    /**
+     * validates text
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateText(bool $required, string $field, $value, array $options)
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            //validate the limiting rules
+            $len = strlen($value);
+            $this->checkLimitingRules($value, $len, null, ' characters');
+        }
+        return $this->succeeds();
     }
 }
