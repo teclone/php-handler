@@ -18,12 +18,12 @@ class Handler
     /**
      * the raw data to be handled and processed
     */
-    private $_source = [];
+    private $_source = null;
 
     /**
      * array of rules to apply
     */
-    private $_rules = [];
+    private $_rules = null;
 
     /**
      * the validator instance
@@ -425,10 +425,10 @@ class Handler
     {
         if (!$this->_executed)
         {
-            if (empty($this->_source))
+            if (is_null($this->_source))
                 throw new DataNotFoundException('no data found to proccess');
 
-            if (empty($this->_rules))
+            if (is_null($this->_rules))
                 throw new RuleNotFoundException('no validation rules set');
 
             return true;
@@ -493,9 +493,7 @@ class Handler
     public function setRules(array $rules = null)
     {
         if (is_array($rules))
-        {
             $this->_rules = $rules;
-        }
         return $this;
     }
 
