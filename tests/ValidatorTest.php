@@ -284,6 +284,45 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating regex bad formats rule
+    */
+    public function badFormatsRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'badFormats' => [
+                        [
+                            'test' => '/^H/i',
+                            'err' => '{_this} should not start with character "H"',
+                        ],
+                    ],
+                ],
+                [
+                    'first_name should not start with character "H"',
+                ]
+            ],
+            'set 2' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'badFormats' => [
+                        [
+                            'test' => '/^a/i',
+                            'err' => '{_this} should not start with character "H"',
+                        ],
+                        'test' => 'this will be ignored'
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -401,6 +440,14 @@ class ValidatorTest extends TestCase
      *@dataProvider formatsRuleTestDataProvider
     */
     public function testFormatsRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider badFormatsRuleTestDataProvider
+    */
+    public function testBadFormatsRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
