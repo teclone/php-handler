@@ -586,7 +586,8 @@ class Validator implements ValidatorInterface
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
-            if (filter_var($value, FILTER_VALIDATE_URL))
+            $schemed_url = 'http://' . $value;
+            if (filter_var($value, FILTER_VALIDATE_URL) || filter_var($schemed_url, FILTER_VALIDATE_URL))
             {
                 $this->checkFormattingRules($value, $options);
             }
