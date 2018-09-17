@@ -40,4 +40,15 @@ class ValidatorTest extends TestCase
 
         $this->assertEquals($error_bag, $this->_validator->getErrorBag());
     }
+
+    /**
+     * test that required fields are validated accordingly
+    */
+    public function testRequiredFields()
+    {
+        $this->_validator->validateText(true, 'first_name', null, []);
+        $this->assertTrue($this->_validator->fails());
+        $this->assertEquals('first_name field is required',
+            $this->_validator->getErrorBag()['first_name']);
+    }
 }
