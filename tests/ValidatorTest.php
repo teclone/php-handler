@@ -186,6 +186,38 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating gt limit rule
+    */
+    public function gtLimitRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'gt' => 8,
+                    'gtErr' => '{_this} should be greater than 8 characters'
+                ],
+                [
+                    'first_name should be greater than 8 characters',
+                ]
+            ],
+            'set 2' => [
+                'validateDate',
+                'start_date',
+                ['2018-01-01'],
+                [
+                    'gt' => '2018-01-01',
+                ],
+                [
+                    'start_date should be greater than 2018-01-01',
+                ]
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -279,6 +311,14 @@ class ValidatorTest extends TestCase
      *@dataProvider maxLimitRuleTestDataProvider
     */
     public function testMaxLimitRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider gtLimitRuleTestDataProvider
+    */
+    public function testGtLimitRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
