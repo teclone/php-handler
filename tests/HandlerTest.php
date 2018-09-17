@@ -24,6 +24,7 @@ class HandlerTest extends TestCase
             'age' => 22,
             'fav-negative-int' => '-10',
             'fav-positive-int' => '4',
+            'height' => '5.4ft',
             'fav-negative-float' => '-10.00',
             'fav-positive-float' => '4.00',
             'password1' => 'random',
@@ -31,7 +32,8 @@ class HandlerTest extends TestCase
             'timestamp' => '',
             'date-of-birth' => '',
             'email' => 'Harrisonifeanyichukwu@gmail.com',
-            'website' => 'www.example.com'
+            'website' => 'www.example.com',
+            'terms-and-condition' => 'no'
         ];
     }
 
@@ -70,6 +72,9 @@ class HandlerTest extends TestCase
             'fav-positive-int' => [
                 'type' => 'pInt',
             ],
+            'height' => [
+                'type' => 'float',
+            ],
             'fav-negative-float' => [
                 'type' => 'nFloat',
             ],
@@ -86,14 +91,18 @@ class HandlerTest extends TestCase
             ],
             'date-of-birth' => [
                 'required' => false,
+                'type' => 'date',
                 'default' => '{CURRENT_DATE}'
             ],
             'email' => [
                 'type' => 'email',
             ],
             'website' => [
-                'type' => 'url'
-            ]
+                'type' => 'url',
+            ],
+            'terms-and-condition' => [
+                'type' => 'boolean',
+            ],
         ];
     }
 
