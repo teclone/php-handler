@@ -133,6 +133,23 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * runs format and bad format rule checks
+     *
+     *@param string $value - the field value
+     *@param array $options - field rule options
+    */
+    protected function checkFormattingRules(string $value, array $options)
+    {
+        //check for formats
+        if ($this->succeeds())
+        $this->checkFormatRules($value, Util::arrayValue('formats', $options));
+
+        //check bad formats
+        if ($this->succeeds())
+            $this->checkBadFormatRules($value, Util::arrayValue('badFormats', $options));
+    }
+
+    /**
      * runs the callback method on the given value
      *
      *@param mixed $value - the value
@@ -311,13 +328,8 @@ class Validator implements ValidatorInterface
             $len = strlen($value);
             $this->checkLimitingRules($value, $len, null, ' characters');
 
-            //check for formats
-            if ($this->succeeds())
-                $this->checkFormatRules($value, Util::arrayValue('formats', $options));
-
-            //check bad formats
-            if ($this->succeeds())
-                $this->checkBadFormatRules($value, Util::arrayValue('badFormats', $options));
+            //check for formatting rules
+            $this->checkFormattingRules($value, $options);
         }
         return $this->succeeds();
     }
@@ -533,6 +545,55 @@ class Validator implements ValidatorInterface
             {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid negative number'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates email
+     *
+     *@return bool
+    */
+    public function validateEmail(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (filter_var($value, FILTER_VALIDATE_EMAIL))
+            {
+                $this->checkFormattingRules($value, $options);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid email'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates url
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateURL(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (filter_var($value, FILTER_VALIDATE_URL))
+            {
+                $this->checkFormattingRules($value, $options);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid url'),
                     $value
                 );
             }
