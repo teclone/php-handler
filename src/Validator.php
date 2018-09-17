@@ -371,4 +371,116 @@ class Validator implements ValidatorInterface
         }
         return $this->succeeds();
     }
+
+    /**
+     * validates integers
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateInteger(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^[-+]?\d+$/', $value))
+            {
+                $integer = intval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $integer);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid integer'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates positive integers
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validatePInteger(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^[+]?\d+$/', $value))
+            {
+                $integer = intval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $integer);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid positive integer'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates negative integers
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateNInteger(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^-\d+$/', $value))
+            {
+                $integer = intval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $integer);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid negative integer'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates floats
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateFloat(bool $required, string $field, $value, array $options): bool
+    {
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            if (preg_match('/^([-+]?\d+(\.\d+)?)|(\.\d+)$/', $value))
+            {
+                $float = floatval($value);
+
+                //check limiting rules
+                $this->checkLimitingRules($value, $float);
+            }
+            else
+            {
+                $this->setError(
+                    Util::value('err', $options, '{this} is not a valid number'),
+                    $value
+                );
+            }
+        }
+        return $this->succeeds();
+    }
 }
