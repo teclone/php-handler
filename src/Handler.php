@@ -5,10 +5,12 @@
 declare(strict_types = 1);
 namespace Forensic\Handler;
 
-use Forensic\Handler\Exceptions\DataNotFoundException;
-use Forensic\Handler\Exceptions\RuleNotFoundException;
 use Forensic\Handler\Interfaces\ValidatorInterface;
+
 use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
+use Forensic\Handler\Exceptions\DataSourceNotSetException;
+use Forensic\Handler\Exceptions\RulesNotSetException;
+use Forensic\Handler\Exceptions\DataNotFoundException;
 
 ini_set('filter.default', 'full_special_chars');
 ini_set('filter.default_flags', '0');
@@ -75,6 +77,10 @@ class Handler
     */
     private $_db_checks = [];
 
+    /**
+     * array of processed data
+    */
+    private $_data = [];
 
     /**
      * sets error message for a given field
@@ -420,16 +426,18 @@ class Handler
     /**
      * returns boolean indicating if the execute call should proceed
      *@return bool
+     *@throws DataSourceNotSetException
+     *@throws RulesNotSetException
     */
     protected function shouldExecute()
     {
         if (!$this->_executed)
         {
             if (is_null($this->_source))
-                throw new DataNotFoundException('no data found to proccess');
+                throw new DataSourceNotSetException('No data source set');
 
             if (is_null($this->_rules))
-                throw new RuleNotFoundException('no validation rules set');
+                throw new RulesNotSetException('No validation rules set');
 
             return true;
         }
@@ -512,6 +520,8 @@ class Handler
      * executes the handler
      *
      *@return bool
+     *@throws DataSourceNotSetException
+     *@throws RulesNotSetException
     */
     public function execute()
     {
@@ -577,12 +587,29 @@ class Handler
     /**
      * returns the data for the given key if it exists, or null
      *@return string|null
+     *@throws DataNotFoundException
     */
     public function getData(string $key)
     {
         if (array_key_exists($key, $this->_data))
             return $this->_data[$key];
         else
-            return null;
+            throw new DataNotFoundException('No data set for the given key: ' . $key);
+    }
+
+    /**
+     * overload the data properties to make them accessible directly on the instance
+    */
+    public function __get(string $name)
+    {
+        try
+        {
+            return $this->getData($name);
+        }
+        catch(DataNotFoundException $ex)
+        {
+            // replace underscores with hyphen
+            return $this->getData(preg_replace('/_/', '-', $name));
+        }
     }
 }
