@@ -218,6 +218,38 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating lt limit rule
+    */
+    public function ltLimitRuleTestDataProvider()
+    {
+        return [
+            'set 1' => [
+                'validateText',
+                'first_name',
+                ['Harrison'],
+                [
+                    'lt' => 8,
+                    'ltErr' => '{_this} should be less than 8 characters'
+                ],
+                [
+                    'first_name should be less than 8 characters',
+                ]
+            ],
+            'set 2' => [
+                'validateDate',
+                'start_date',
+                ['2018-01-01'],
+                [
+                    'lt' => '2018-01-01',
+                ],
+                [
+                    'start_date should be less than 2018-01-01',
+                ]
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -319,6 +351,14 @@ class ValidatorTest extends TestCase
      *@dataProvider gtLimitRuleTestDataProvider
     */
     public function testGtLimitRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider ltLimitRuleTestDataProvider
+    */
+    public function testLtLimitRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
