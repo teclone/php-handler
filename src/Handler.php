@@ -131,6 +131,12 @@ class Handler
             case 'bool':
                 $method = '';
                 break;
+            case 'email':
+                $method = 'validateEmail';
+                break;
+            case 'url':
+                $method = 'validateURL';
+                break;
         }
 
         if ($method)
