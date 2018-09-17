@@ -82,6 +82,57 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * checks the bad format regex rules
+     *
+     *@param mixed $value - the value
+     *@param string[] $formats - array of regex expressions
+    */
+    protected function checkBadFormatRules($value, array $bad_formats)
+    {
+        if (count($bad_formats) === 0)
+            return true;
+
+        foreach($bad_formats as $bad_format)
+        {
+            if (!is_array($bad_format))
+                continue; //skip if it is not an array
+
+            $test = Util::value('test', $bad_format, '/.*/');
+            if (preg_match($test, $value))
+                return $this->setError(
+                    Util::value('err', $bad_format, '{this} is not in correct format or contains unwanted characters'),
+                    $value
+                );
+        }
+        return true;
+    }
+
+    /**
+     * checks the format regex rules
+     *
+     *@param mixed $value - the value
+     *@param string[] $formats - array of regex expressions
+    */
+    protected function checkFormatRules($value, array $formats)
+    {
+        $tests = Util::arrayValue('tests', $formats);
+
+        if (count($tests) === 0)
+            return true;
+
+        foreach($tests as $test)
+        {
+            if (preg_match($test, $value))
+                return true;
+        }
+
+        return $this->setError(
+            Util::value('err', $formats, '{this} did not match any of the expected formats'),
+            $value
+        );
+    }
+
+    /**
      * runs the callback method on the given value
      *
      *@param mixed $value - the value
@@ -259,6 +310,14 @@ class Validator implements ValidatorInterface
             //validate the limiting rules
             $len = strlen($value);
             $this->checkLimitingRules($value, $len, null, ' characters');
+
+            //check for formats
+            if ($this->succeeds())
+                $this->checkFormatRules($value, Util::arrayValue('formats', $options));
+
+            //check bad formats
+            if ($this->succeeds())
+                $this->checkBadFormatRules($value, Util::arrayValue('badFormats', $options));
         }
         return $this->succeeds();
     }
