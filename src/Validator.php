@@ -568,7 +568,7 @@ class Validator implements ValidatorInterface
             else
             {
                 $this->setError(
-                    Util::value('err', $options, '{this} is not a valid email'),
+                    Util::value('err', $options, '{this} is not a valid email address'),
                     $value
                 );
             }
@@ -586,8 +586,15 @@ class Validator implements ValidatorInterface
     {
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
-            $schemed_url = 'http://' . $value;
-            if (filter_var($value, FILTER_VALIDATE_URL) || filter_var($schemed_url, FILTER_VALIDATE_URL))
+            $format = '/^'
+                . '(?:(?:(https|http|ftp):\/\/))?' //match optional scheme
+                . '([0-9a-z][-\w]*[0-9a-z]\.)+' //match domain name with ending dot
+                . '([a-z]{2,9})' // match the domain prefix
+                . '(?::\d{1,4})?' //match optional port
+                . '([#?\/][-()_\w\/#~:.?+=&%@]*)?' //match
+                . '$/i';
+
+            if (preg_match($format, $value))
             {
                 $this->checkFormattingRules($value, $options);
             }
