@@ -119,6 +119,39 @@ class ValidatorTest extends TestCase
                 [],
                 ['0.222 is not a valid negative number'],
             ],
+
+            //email validation
+            'correct email set' => [
+                'validateEmail',
+                'email',
+                ['Harrisonifeanyichukwu@gmail.com', 'harrisonifeanyichukwu@yahoo.com']
+            ],
+            'wrong email set' => [
+                'validateEmail',
+                'email',
+                ['Harrisonifeanyichukwu@gmail', 'harrisonifeanyichukwu@yahoo.'],
+                [],
+                [
+                    '"Harrisonifeanyichukwu@gmail" is not a valid email address',
+                    '"harrisonifeanyichukwu@yahoo." is not a valid email address',
+                ],
+            ],
+
+            //url validation
+            'correct url set' => [
+                'validateURL',
+                'website',
+                ['example.com', 'www.example.com']
+            ],
+            'wrong url set' => [
+                'validateURL',
+                'website',
+                ['example'],
+                [],
+                [
+                    '"example" is not a valid url'
+                ]
+            ],
         ];
     }
 
