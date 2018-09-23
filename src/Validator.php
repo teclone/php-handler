@@ -103,6 +103,31 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * checks the regex any rules
+     *
+     *@param mixed $value - the value
+     *@param array $regex - array of regex expressions tests
+    */
+    protected function regexCheckAny($value, array $regex)
+    {
+        $tests = Util::arrayValue('tests', $regex);
+
+        if (count($tests) === 0)
+            return true;
+
+        foreach($tests as $test)
+        {
+            if (preg_match($test, $value))
+                return true;
+        }
+
+        return $this->setError(
+            Util::value('err', $regex, '{this} did not match any of the expected formats'),
+            $value
+        );
+    }
+
+    /**
      * checks the regex all rules
      *
      *@param mixed $value - the value
