@@ -7,24 +7,45 @@ declare(strict_types = 1);
  *
  * Their associated errors are minErr, maxErr, gtErr, and ltErr.
  *
- * Their is the formats option, that is an array of regex expressions.
+ * Their is the regex family options that include
+ *
+ * regexAll, contains array of regex expressions that the value must match. The value
+ * must match all the regex all expressions, else it is flagged as an error
+ *
+ * e.g 'regexAll' => [
+ *      //array of regex expressions,
+ *      [
+ *          'test' => '/regex to test/',
+ *          'err' => 'error message to set if the test fails'
+ *      ],
+ *      [
+ *          'test' => '/another regex to test/',
+ *          'err' => 'error message to set if the test fails'
+ *      ],
+ * ]
+ *
+ * regexAny contains array of regex expression tests which must be mathed at least for one
+ * regex expression
  * It is an error if the value did not match any of the entries.
  *
- * e.g 'formats' => [
- *      'tests' =>  ['array of regex expressions to test'],
+ * e.g 'regexAny' => [
+ *      'tests' =>  ['/regex test one/', '/regex test two/', .....],
  *      'err' => 'error message if none of the regex matches'
  * ]
  *
- * Their is the badFormats option, that is an array of regex expressions.
- * It is an error if the value matches at least one of the regex expressions.
+ * regexNone, that is an array of regex expressions.
+ * It is an error if the value matches any of the regex expressions.
  *
- * e.g 'badFormats' => [
- *      //array of format
+ * 'regexNone' => [
+ *      //array of regex expressions,
  *      [
- *          'test' => '/regextotest/',
- *          'err' => 'error message is this bad test matches'
+ *          'test' => '/regex to test/',
+ *          'err' => 'error message to set if the test succeeds'
  *      ],
- *      //more test arrays
+ *      [
+ *          'test' => '/another regex to test/',
+ *          'err' => 'error message to set if the test succeeds'
+ *      ],
  * ]
 */
 namespace Forensic\Handler;
@@ -82,25 +103,25 @@ class Validator implements ValidatorInterface
     }
 
     /**
-     * checks the bad format regex rules
+     * checks the regex all rules
      *
      *@param mixed $value - the value
-     *@param string[] $formats - array of regex expressions
+     *@param array $regexes - array of regex expression arrays
     */
-    protected function checkBadFormatRules($value, array $bad_formats)
+    protected function regexCheckAll($value, array $regexes)
     {
-        if (count($bad_formats) === 0)
+        if (count($regexes) === 0)
             return true;
 
-        foreach($bad_formats as $bad_format)
+        foreach($regexes as $regex)
         {
-            if (!is_array($bad_format))
+            if (!is_array($regex))
                 continue; //skip if it is not an array
 
-            $test = Util::value('test', $bad_format, '/.*/');
-            if (preg_match($test, $value))
+            $test = Util::value('test', $regex, null);
+            if (!is_null($test) && !preg_match($test, $value))
                 return $this->setError(
-                    Util::value('err', $bad_format, '{this} is not in correct format or contains unwanted characters'),
+                    Util::value('err', $regex, '{this} format not acceptable or contains invalid characters'),
                     $value
                 );
         }
@@ -108,45 +129,16 @@ class Validator implements ValidatorInterface
     }
 
     /**
-     * checks the format regex rules
-     *
-     *@param mixed $value - the value
-     *@param string[] $formats - array of regex expressions
-    */
-    protected function checkFormatRules($value, array $formats)
-    {
-        $tests = Util::arrayValue('tests', $formats);
-
-        if (count($tests) === 0)
-            return true;
-
-        foreach($tests as $test)
-        {
-            if (preg_match($test, $value))
-                return true;
-        }
-
-        return $this->setError(
-            Util::value('err', $formats, '{this} did not match any of the expected formats'),
-            $value
-        );
-    }
-
-    /**
-     * runs format and bad format rule checks
+     * runs regex rule checks
      *
      *@param string $value - the field value
      *@param array $options - field rule options
     */
-    protected function checkFormattingRules(string $value, array $options)
+    protected function checkRegexRules(string $value, array $options)
     {
-        //check for formats
+        //check for regexAll rule
         if ($this->succeeds())
-        $this->checkFormatRules($value, Util::arrayValue('formats', $options));
-
-        //check bad formats
-        if ($this->succeeds())
-            $this->checkBadFormatRules($value, Util::arrayValue('badFormats', $options));
+            $this->regexCheckAll($value, Util::arrayValue('regexAll', $options));
     }
 
     /**
@@ -329,7 +321,7 @@ class Validator implements ValidatorInterface
             $this->checkLimitingRules($value, $len, null, ' characters');
 
             //check for formatting rules
-            $this->checkFormattingRules($value, $options);
+            $this->checkRegexRules($value, $options);
         }
         return $this->succeeds();
     }
@@ -395,19 +387,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[-+]?\d+$/', $value))
-            {
-                $integer = intval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $integer);
-            }
+                $this->checkLimitingRules($value, intval($value));
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid integer'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -423,19 +408,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[+]?\d+$/', $value))
-            {
-                $integer = intval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $integer);
-            }
+                $this->checkLimitingRules($value, intval($value)); //check limiting rules
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid positive integer'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -451,19 +429,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^-\d+$/', $value))
-            {
-                $integer = intval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $integer);
-            }
+                $this->checkLimitingRules($value, intval($value)); //check limiting rules
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid negative integer'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -479,19 +450,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^(?:[-+]?\d+(\.\d+)?|\.\d+)$/', $value))
-            {
-                $float = floatval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $float);
-            }
+                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid number'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -507,19 +471,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^(?:\+?\d+(\.\d+)?|\.\d+)$/', $value))
-            {
-                $float = floatval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $float);
-            }
+                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid positive number'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -535,19 +492,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[-]\d+(\.\d+)?$/', $value))
-            {
-                $float = floatval($value);
-
-                //check limiting rules
-                $this->checkLimitingRules($value, $float);
-            }
+                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid negative number'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -562,16 +512,12 @@ class Validator implements ValidatorInterface
         if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
         {
             if (filter_var($value, FILTER_VALIDATE_EMAIL))
-            {
-                $this->checkFormattingRules($value, $options);
-            }
+                $this->checkRegexRules($value, $options);
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid email address'),
                     $value
                 );
-            }
         }
         return $this->succeeds();
     }
@@ -591,20 +537,37 @@ class Validator implements ValidatorInterface
                 . '([0-9a-z][-\w]*[0-9a-z]\.)+' //match domain name with ending dot
                 . '([a-z]{2,9})' // match the domain prefix
                 . '(?::\d{1,4})?' //match optional port
-                . '([#?\/][-()_\w\/#~:.?+=&%@]*)?' //match
+                . '([#?\/][-()_\w\/#~:.?+=&%@]*)?' //match any additonal paths, or query or hash
                 . '$/i';
 
             if (preg_match($format, $value))
-            {
-                $this->checkFormattingRules($value, $options);
-            }
+                $this->checkRegexRules($value, $options);
             else
-            {
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid url'),
                     $value
                 );
-            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * validates choice
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@return bool
+    */
+    public function validateChoice(bool $required, string $field, $value, array $options): bool
+    {
+        $original_value = $value;
+        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        {
+            $choices = Util::arrayValue('choices', $options);
+            if (!in_array($value, $choices) && !in_array($original_value, $choices))
+                $this->setError(
+                    Util::value('err', $options, '{this} is not an accepted choice'),
+                    $value
+                );
         }
         return $this->succeeds();
     }
