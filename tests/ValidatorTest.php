@@ -359,6 +359,40 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * provides data used for validating regexAny rules
+    */
+    public function regexAnyRuleTestDataProvider()
+    {
+        return [
+            'correct data set' => [
+                'validateURL',
+                'website',
+                ['https://www.example.com'],
+                [
+                    'regexAny' => [
+                        //test that the website url starts with https or ftp
+                        'tests' => ['/^https/', '/^ftp/'],
+                        'err' => 'website url should start with https or ftp protocols',
+                    ],
+                ],
+            ],
+
+            'wrong data set' => [
+                'validateURL',
+                'website',
+                ['http://www.example.com'],
+                [
+                    'regexAny' => [
+                        //test that the website url starts with https or ftp
+                        'tests' => ['/^https/', '/^ftp/'],
+                        'err' => 'website url should start with https or ftp protocols',
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -476,6 +510,14 @@ class ValidatorTest extends TestCase
      *@dataProvider regexAllRuleTestDataProvider
     */
     public function testRegexAllRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider regexAnyRuleTestDataProvider
+    */
+    public function testRegexAnyRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
