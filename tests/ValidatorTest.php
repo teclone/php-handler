@@ -152,6 +152,28 @@ class ValidatorTest extends TestCase
                     '"example" is not a valid url'
                 ]
             ],
+            //choice validation
+            'correct choice set' => [
+                'validateChoice',
+                'language',
+                ['eu', 'en'],
+                [
+                    'choices' => array('eu', 'en')
+                ]
+            ],
+            'wrong choice set' => [
+                'validateChoice',
+                'language',
+                ['du', 'fr'],
+                [
+                    'choices' => array('eu', 'en'),
+                    'err' => '{this} is not a valid language code'
+                ],
+                [
+                    '"du" is not a valid language code',
+                    '"fr" is not a valid language code',
+                ]
+            ],
         ];
     }
 
@@ -284,74 +306,55 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * provides data used for validating regex formats rule
+     * provides data used for validating regexAll rules
     */
-    public function formatsRuleTestDataProvider()
+    public function regexAllRuleTestDataProvider()
     {
         return [
-            'set 1' => [
+            'correct data set' => [
                 'validateText',
-                'first_name',
+                'first-name',
                 ['Harrison'],
                 [
-                    'formats' => [
-                        'tests' => ['/^a/i', '/^\d/'],
-                        'err' => '{_this} should start with character "a" or with a digit'
-                    ],
-                ],
-                [
-                    'first_name should start with character "a" or with a digit',
-                ]
-            ],
-            'set 2' => [
-                'validateText',
-                'first_name',
-                ['Harrison'],
-                [
-                    'formats' => [
-                        'tests' => ['/^[a-z]/i', '/^\d/'],
-                        'err' => '{_this} should start with character "a" or with a digit'
+                    'regexAll' => [
+                        [
+                            //test that the name starts with alphabet
+                            'test' => '/^[a-z]/i',
+                            'err' => 'first name should start with alphabet'
+                        ],
+                        [
+                            //test that the name is 3-15 characters long
+                            'test' => '/^\w{3,14}$/i',
+                            'err' => 'first name should be 3 to 15 characters long'
+                        ],
+                        //test that it ignores options that is not an array
+                        '/^[0-9]/',
                     ],
                 ],
             ],
-        ];
-    }
 
-    /**
-     * provides data used for validating regex bad formats rule
-    */
-    public function badFormatsRuleTestDataProvider()
-    {
-        return [
-            'set 1' => [
+            'wrong data set' => [
                 'validateText',
-                'first_name',
-                ['Harrison'],
+                'first-name',
+                ['7up', 'Ha'],
                 [
-                    'badFormats' => [
+                    'regexAll' => [
                         [
-                            'test' => '/^H/i',
-                            'err' => '{_this} should not start with character "H"',
+                            //test that the name starts with alphabet
+                            'test' => '/^[a-z]/i',
+                            'err' => 'first name should start with alphabet'
+                        ],
+                        [
+                            //test that the name is 3-15 characters long
+                            'test' => '/^\w{3,14}$/i',
+                            'err' => 'first name should be 3 to 15 characters long'
                         ],
                     ],
                 ],
                 [
-                    'first_name should not start with character "H"',
+                    'first name should start with alphabet',
+                    'first name should be 3 to 15 characters long'
                 ]
-            ],
-            'set 2' => [
-                'validateText',
-                'first_name',
-                ['Harrison'],
-                [
-                    'badFormats' => [
-                        [
-                            'test' => '/^a/i',
-                            'err' => '{_this} should not start with character "H"',
-                        ],
-                        'test' => 'this will be ignored'
-                    ],
-                ],
             ],
         ];
     }
@@ -470,17 +473,9 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     *@dataProvider formatsRuleTestDataProvider
+     *@dataProvider regexAllRuleTestDataProvider
     */
-    public function testFormatsRule(...$args)
-    {
-        $this->validationRulesTester(...$args);
-    }
-
-    /**
-     *@dataProvider badFormatsRuleTestDataProvider
-    */
-    public function testBadFormatsRule(...$args)
+    public function testRegexAllRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
