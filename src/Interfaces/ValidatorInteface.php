@@ -42,4 +42,7 @@ interface ValidatorInterface
 
     /** url validation interface */
     public function validateURL(bool $required, string $field, $value, array $options): bool;
+
+    /** choice validation interface */
+    public function validateChoice(bool $required, string $field, $value, array $options): bool;
 }
