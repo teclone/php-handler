@@ -164,6 +164,10 @@ class Validator implements ValidatorInterface
         //check for regexAll rule
         if ($this->succeeds())
             $this->regexCheckAll($value, Util::arrayValue('regexAll', $options));
+
+        //check for regexAny rule
+        if ($this->succeeds())
+            $this->regexCheckAny($value, Util::arrayValue('regexAny', $options));
     }
 
     /**
