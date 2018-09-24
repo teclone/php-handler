@@ -45,4 +45,7 @@ interface ValidatorInterface
 
     /** choice validation interface */
     public function validateChoice(bool $required, string $field, $value, array $options): bool;
+
+    /** range validation interface */
+    public function validateRange(bool $required, string $field, $value, array $options): bool;
 }
