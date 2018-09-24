@@ -58,6 +58,21 @@ class Util
     }
 
     /**
+     * returns true if the given key is set and it is truthy
+     *
+     *@param string $key - the array key
+     *@param array $arr - the array
+     *@return bool
+    */
+    public function keySetAndTrue(string $key, array $arr)
+    {
+        if (array_key_exists($key, $arr) && $arr[$key])
+            return true;
+        else
+            return false;
+    }
+
+    /**
      * returns boolean value indicating if value is numberic
      *
      *@param mixed $value - the value
