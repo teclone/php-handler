@@ -624,10 +624,24 @@ class Validator implements ValidatorInterface
             $choices = Util::arrayValue('choices', $options);
             if (!in_array($value, $choices) && !in_array($original_value, $choices))
                 $this->setError(
-                    Util::value('err', $options, '{this} is not an accepted choice'),
+                    Util::value('err', $options, '{this} is not an acceptable choice'),
                     $value
                 );
         }
         return $this->succeeds();
+    }
+
+    /**
+     * validates range of options, either numbers or alphabets with optional step increment
+    */
+    public function validateRange(bool $required, string $field, $value, array $options): bool
+    {
+        $from = Util::value('from', $options);
+        $to = Util::value('to', $options);
+        $step = Util::value('step', $options, 1); //default step of 1
+
+        $options['choices'] = range($from, $to, abs($step));
+
+        return $this->validateChoice($required, $field, $value, $options);
     }
 }
