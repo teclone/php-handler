@@ -211,6 +211,15 @@ class Handler
         if (Util::keyNotSetOrTrue('stripTags', $filters))
             $value = strip_tags($value);
 
+        if (Util::keySetAndTrue('toUpper', $filters))
+            $value = strtoupper($value);
+
+        else if (Util::keySetAndTrue('toLower', $filters))
+            $value = strtolower($value);
+
+        if (Util::keyNotSetOrTrue('stripTags', $filters))
+            $value = strip_tags($value);
+
         switch(strtolower($filters['type']))
         {
             case 'email':
