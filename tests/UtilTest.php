@@ -89,7 +89,7 @@ class UtilTest extends TestCase
      * test that it returns true if key is not in array, or if key value is truthy, otherwise,
      * it should return false
     */
-    public function testKeyNotOrTrue()
+    public function testKeyNotSetOrTrue()
     {
         $arr = array('required' => true, 'filter' => false);
 
@@ -97,6 +97,21 @@ class UtilTest extends TestCase
         $this->assertTrue(Util::keyNotSetOrTrue('unknown', $arr));
 
         $this->assertFalse(Util::keyNotSetOrTrue('filter', $arr));
+    }
+
+    /**
+     * test that it returns true if key is in array and its value is truthy
+     * otherwise, it should return false
+    */
+    public function testKeySetAndTrue()
+    {
+        $arr = array('required' => true, 'filter' => false);
+
+        $this->assertTrue(Util::keySetAndTrue('required', $arr));
+
+        $this->assertFalse(Util::keySetAndTrue('filter', $arr));
+
+        $this->assertFalse(Util::keySetAndTrue('unknown', $arr));
     }
 
     /**
