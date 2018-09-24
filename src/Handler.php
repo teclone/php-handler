@@ -83,6 +83,44 @@ class Handler
     private $_data = [];
 
     /**
+     * returns rule type to validation method map
+     *
+     *@return array
+    */
+    protected function getRuleTypesMethodMap()
+    {
+        return [
+            //text validator
+            'text' => 'validateText',
+
+            // date validator
+            'date' => 'validateDate',
+
+            //integer validation methods
+            'int' => 'validateInteger',
+            'pint' => 'validatePInteger',
+            'nint' => 'validateNInteger',
+
+            //number validation methods
+            'float' => 'validateFloat',
+            'pfloat' => 'validatePFloat',
+            'nfloat' => 'validateNFloat',
+
+            //boolean validation
+            'bool' => '',
+
+            //email validation
+            'email' => 'validateEmail',
+
+            //url validation
+            'url' => 'validateURL',
+
+            //range validation
+            'range' => 'validateRange',
+        ];
+    }
+
+    /**
      * sets error message for a given field
      *
      *@param string $field - the field
@@ -107,43 +145,9 @@ class Handler
     protected function runValidation(bool $required, string $field, $value, array $options)
     {
         $validator = $this->_validator;
-        $method = null;
-        switch(strtolower($options['type']))
-        {
-            case 'text':
-                $method = 'validateText';
-                break;
-            case 'date':
-                $method = 'validateDate';
-                break;
-            case 'int':
-                $method = 'validateInteger';
-                break;
-            case 'pint':
-                $method = 'validatePInteger';
-                break;
-            case 'nint':
-                $method = 'validateNInteger';
-                break;
-            case 'float':
-                $method = 'validateFloat';
-                break;
-            case 'pfloat':
-                $method = 'validatePFloat';
-                break;
-            case 'nfloat':
-                $method = 'validateNFloat';
-                break;
-            case 'bool':
-                $method = '';
-                break;
-            case 'email':
-                $method = 'validateEmail';
-                break;
-            case 'url':
-                $method = 'validateURL';
-                break;
-        }
+
+        $rule_type = strtolower($options['type']);
+        $method = Util::value($rule_type, $this->getRuleTypesMethodMap());
 
         if ($method)
             $validator->{$method}(
