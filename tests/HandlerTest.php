@@ -169,7 +169,9 @@ class HandlerTest extends TestCase
                     'fav-numbers' => array('4', '7', '10', '11'),
                     'height' => '5.4ft',
                     'email' => '(Harrisonifeanyichukwu@gmail.com)',
-                    'website' => 'http://www.fjsfoundations.com'
+                    'website' => 'http://www.fjsfoundations.com',
+                    'alpha-one' => 'a',
+                    'alpha-two' => 'Z'
                 ],
                 //rules
                 [
@@ -196,7 +198,17 @@ class HandlerTest extends TestCase
                     ],
                     'website' => [
                         'type' => 'url'
-                    ]
+                    ],
+                    'alpha-one' => [
+                        'filters' => [
+                            'toUpper' => true
+                        ],
+                    ],
+                    'alpha-two' => [
+                        'filters' => [
+                            'toLower' => true
+                        ],
+                    ],
                 ],
                 //is erronous
                 false,
@@ -209,7 +221,9 @@ class HandlerTest extends TestCase
                     'fav-numbers' => array(4, 7, 10, 11),
                     'height' => '5.4',
                     'email' => 'Harrisonifeanyichukwu@gmail.com',
-                    'website' => 'http://www.fjsfoundations.com'
+                    'website' => 'http://www.fjsfoundations.com',
+                    'alpha-one' => 'A',
+                    'alpha-two' => 'z'
                 ]
             ],
         ];
