@@ -103,6 +103,32 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * checks the regex none rules
+     *
+     *@param mixed $value - the value
+     *@param array $regexes - array of regex expression arrays
+    */
+    protected function regexCheckNone($value, array $regexes)
+    {
+        if (count($regexes) === 0)
+            return true;
+
+        foreach($regexes as $regex)
+        {
+            if (!is_array($regex))
+                continue; //skip if it is not an array
+
+            $test = Util::value('test', $regex, null);
+            if (!is_null($test) && preg_match($test, $value))
+                return $this->setError(
+                    Util::value('err', $regex, '{this} format not acceptable or contains invalid characters'),
+                    $value
+                );
+        }
+        return true;
+    }
+
+    /**
      * checks the regex any rules
      *
      *@param mixed $value - the value
@@ -168,6 +194,10 @@ class Validator implements ValidatorInterface
         //check for regexAny rule
         if ($this->succeeds())
             $this->regexCheckAny($value, Util::arrayValue('regexAny', $options));
+
+        //check for regexNone rule
+        if ($this->succeeds())
+            $this->regexCheckNone($value, Util::arrayValue('regexNone', $options));
     }
 
     /**
