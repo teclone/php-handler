@@ -152,6 +152,7 @@ class ValidatorTest extends TestCase
                     '"example" is not a valid url'
                 ]
             ],
+
             //choice validation
             'correct choice set' => [
                 'validateChoice',
@@ -172,6 +173,54 @@ class ValidatorTest extends TestCase
                 [
                     '"du" is not a valid language code',
                     '"fr" is not a valid language code',
+                ]
+            ],
+
+            //range validation
+            'correct range set' => [
+                'validateRange',
+                'year',
+                ['1996', 2000],
+                [
+                    'from' => 1990,
+                    'to' => 2018
+                ]
+            ],
+            'correct range set 2' => [
+                'validateRange',
+                'alphabet',
+                ['a', 'c'],
+                [
+                    'from' => 'a',
+                    'to' => 'z'
+                ]
+            ],
+            'wrong range set' => [
+                'validateRange',
+                'year',
+                [1978, '2019'],
+                [
+                    'from' => 1990,
+                    'to' => 2018,
+                    'err' => '{this} is not a valid year'
+                ],
+                [
+                    '1978 is not a valid year',
+                    '2019 is not a valid year',
+                ]
+            ],
+            'wrong range set 2' => [
+                'validateRange',
+                'alphabet',
+                ['b', 'd'],
+                [
+                    'from' => 'a',
+                    'to' => 'z',
+                    'step' => 2
+                ],
+                [
+                    '"b" is not an acceptable choice',
+                    '"d" is not an acceptable choice'
                 ]
             ],
         ];
