@@ -230,6 +230,373 @@ class HandlerTest extends TestCase
     }
 
     /**
+     * return test data used for testing requireIf conditions
+    */
+    public function requireIfTestDataProvider()
+    {
+        return [
+            //test not checked condition
+            'first set' => [
+                //data
+                [
+                    'is-current-work' => 'on',
+                    'work-end-month' => '',
+                    'work-end-year' => '',
+                ],
+                //rules
+                [
+                    'is-current-work' => [
+                        'type' => 'boolean',
+                    ],
+                    'work-end-month' => [
+                        'type' => 'range',
+                        'options' => [
+                            'from' => 1,
+                            'to' => 12
+                        ],
+                        'requireIf' => [
+                            'condition' => 'notChecked',
+                            'field' => 'is-current-work'
+                        ],
+                    ],
+                    'work-end-year' => [
+                        'type' => 'range',
+                        'options' => [
+                            'from' => 1920,
+                            'to' => date('Y'),
+                        ],
+                        'requireIf' => [
+                            'condition' => 'notChecked',
+                            'field' => 'is-current-work'
+                        ],
+                    ],
+                ],
+
+                //is erronous
+                false,
+                //expected
+                [
+                    'is-current-work' => true,
+                    'work-end-month' => null,
+                    'work-end-year' => null,
+                ]
+            ],
+
+            'second set' => [
+                //data
+                [
+                    'work-end-month' => '',
+                    'work-end-year' => '',
+                ],
+                //rules
+                [
+                    'is-current-work' => [
+                        'type' => 'boolean',
+                    ],
+                    'work-end-month' => [
+                        'type' => 'range',
+                        'options' => [
+                            'from' => 1,
+                            'to' => 12
+                        ],
+                        'requireIf' => [
+                            'condition' => 'notChecked',
+                            'field' => 'is-current-work'
+                        ],
+                    ],
+                    'work-end-year' => [
+                        'type' => 'range',
+                        'options' => [
+                            'from' => 1920,
+                            'to' => date('Y'),
+                        ],
+                        'requireIf' => [
+                            'condition' => 'notChecked',
+                            'field' => 'is-current-work'
+                        ],
+                    ],
+                ],
+                //is erronous
+                true,
+                //expected
+                [
+                    'work-end-month' => 'work-end-month is required',
+                    'work-end-year' => 'work-end-year is required',
+                ]
+            ],
+
+            //test checked condition
+            'third set' => [
+                //data
+                [
+                    'join-newsletter' => 'on',
+                    'email' => 'Harrisonifeanyichukwu@gmail.com',
+                ],
+                //rules
+                [
+                    'join-newsletter' => [
+                        'type' => 'boolean',
+                    ],
+                    'email' => [
+                        'type' => 'email',
+                        'requireIf' => [
+                            'condition' => 'checked',
+                            'field' => 'join-newsletter'
+                        ],
+                    ],
+                ],
+
+                //is erronous
+                false,
+                //expected
+                [
+                    'join-newsletter' => true,
+                    'email' => 'Harrisonifeanyichukwu@gmail.com',
+                ]
+            ],
+
+            'fourth set' => [
+                //data
+                [
+                    'join-newsletter' => 'on',
+                    'email' => '',
+                ],
+                //rules
+                [
+                    'join-newsletter' => [
+                        'type' => 'boolean',
+                    ],
+                    'email' => [
+                        'type' => 'email',
+                        'requireIf' => [
+                            'condition' => 'checked',
+                            'field' => 'join-newsletter'
+                        ],
+                        'hint' => 'you must enter your email to join'
+                    ],
+                ],
+
+                //is erronous
+                true,
+                //expected
+                [
+                    'email' => 'you must enter your email to join',
+                ]
+            ],
+
+            'fifth set' => [
+                //data
+                [
+                    'email' => '',
+                ],
+                //rules
+                [
+                    'join-newsletter' => [
+                        'type' => 'boolean',
+                    ],
+                    'email' => [
+                        'type' => 'email',
+                        'requireIf' => [
+                            'condition' => 'checked',
+                            'field' => 'join-newsletter'
+                        ],
+                        'hint' => 'you must enter your email to join',
+                        'default' => ''
+                    ],
+                ],
+
+                //is erronous
+                false,
+                //expected
+                [
+                    'join-newsletter' => false,
+                    'email' => '',
+                ]
+            ],
+
+            //test not equals condition
+            'sixth set' => [
+                //data
+                [
+                    'country' => 'ng',
+                    'calling-code' => '',
+                ],
+                //rules
+                [
+                    'country' => [
+                        'required' => true,
+                        'type' => 'choice',
+                        'options' => [
+                            'choices' => array('ng', 'gb', 'us', 'gh')
+                        ]
+                    ],
+                    //tell us your country code if you are not in nigeria, nigerians do not
+
+                    //need to
+                    'calling-code' => [
+                        'requireIf' => [
+                            'condition' => 'notEquals',
+                            'field' => 'country',
+                            'value' => 'ng'
+                        ]
+                    ]
+                ],
+                //is erronous
+                false,
+
+                //expected
+                [
+                    'country' => 'ng',
+                    'calling-code' => null,
+                ]
+            ],
+
+            'seventh set' => [
+                //data
+                [
+                    'country' => 'gb',
+                    'calling-code' => '',
+                ],
+                //rules
+                [
+                    'country' => [
+                        'required' => true,
+                        'type' => 'choice',
+                        'options' => [
+                            'choices' => array('ng', 'gb', 'us', 'gh')
+                        ]
+                    ],
+                    //tell us your country code if you are not in nigeria, nigerians do not
+
+                    //need to
+                    'calling-code' => [
+                        'requireIf' => [
+                            'condition' => 'notEqual',
+                            'field' => 'country',
+                            'value' => 'ng'
+                        ],
+                        'hint' => 'tell us your country calling code'
+                    ]
+                ],
+                //is erronous
+                true,
+
+                //expected error
+                [
+                    'calling-code' => 'tell us your country calling code',
+                ]
+            ],
+
+            //test equals condition
+            'eigth set' => [
+                //data
+                [
+                    'country' => 'gb',
+                ],
+                //rules
+                [
+                    'country' => [
+                        'required' => true,
+                        'type' => 'choice',
+                        'options' => [
+                            'choices' => array('ng', 'gb', 'us', 'gh')
+                        ]
+                    ],
+                    //tell us your salary demand if you are in nigeria, other countries
+                    //are paid equal amount of $50,000 yearly
+                    'salary-demand' => [
+                        'requireIf' => [
+                            'condition' => 'Equal',
+                            'field' => 'country',
+                            'value' => 'ng'
+                        ],
+                        'hint' => 'tell us your salary demand'
+                    ]
+                ],
+                //is erronous
+                false,
+
+                //expected data
+                [
+                    'salary-demand' => null,
+                ]
+            ],
+
+            'ninth set' => [
+                //data
+                [
+                    'country' => 'ng',
+                    'salary-demand' => '100000',
+                ],
+                //rules
+                [
+                    'country' => [
+                        'required' => true,
+                        'type' => 'choice',
+                        'options' => [
+                            'choices' => array('ng', 'gb', 'us', 'gh')
+                        ]
+                    ],
+                    //tell us your salary demand if you are in nigeria, other countries
+                    //are paid equal amount of $50,000 yearly
+                    'salary-demand' => [
+                        'requireIf' => [
+                            'condition' => 'Equal',
+                            'field' => 'country',
+                            'value' => 'ng'
+                        ],
+                        'type' => 'money',
+                        'hint' => 'tell us your salary demand'
+                    ]
+                ],
+                //is erronous
+                false,
+
+                //expected data
+                [
+                    'salary-demand' => 100000,
+                ]
+            ],
+
+            'tenth set' => [
+                //data
+                [
+                    'country' => 'ng',
+                    'salary-demand' => '',
+                ],
+                //rules
+                [
+                    'country' => [
+                        'required' => true,
+                        'type' => 'choice',
+                        'options' => [
+                            'choices' => array('ng', 'gb', 'us', 'gh')
+                        ]
+                    ],
+                    //tell us your salary demand if you are in nigeria, other countries
+                    //are paid equal amount of $50,000 yearly
+                    'salary-demand' => [
+                        'requireIf' => [
+                            'condition' => 'Equal',
+                            'field' => 'country',
+                            'value' => 'ng'
+                        ],
+                        'type' => 'money',
+                        'hint' => 'tell us your salary demand'
+                    ]
+                ],
+                //is erronous
+                true,
+
+                //expected error
+                [
+                    'salary-demand' => 'tell us your salary demand',
+                ]
+            ],
+        ];
+    }
+
+    /**
      * test that we can create an instance without any argument
     */
     public function testCreateInstanceWithNoArgument()
@@ -334,8 +701,8 @@ class HandlerTest extends TestCase
         else
         {
             $this->assertTrue($instance->succeeds());
-            foreach ($errors as $key => $err) {
-                $this->assertEquals($err, $instance->getData($key));
+            foreach ($errors as $key => $value) {
+                $this->assertEquals($value, $instance->getData($key));
             }
         }
     }
@@ -352,6 +719,14 @@ class HandlerTest extends TestCase
      *@dataProvider filterTestDataProvider
     */
     public function testFilters(...$args)
+    {
+        $this->executeHandlerFeature(...$args);
+    }
+
+    /**
+     *@dataProvider requireIfTestDataProvider
+    */
+    public function testRequireIfConditions(...$args)
     {
         $this->executeHandlerFeature(...$args);
     }
