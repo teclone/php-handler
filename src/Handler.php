@@ -115,6 +115,9 @@ class Handler
             //url validation
             'url' => 'validateURL',
 
+            //choice validation
+            'choice' => 'validateChoice',
+
             //range validation
             'range' => 'validateRange',
         ];
@@ -221,36 +224,36 @@ class Handler
         else if (Util::keySetAndTrue('toLower', $filters))
             $value = strtolower($value);
 
-        if (Util::keyNotSetOrTrue('stripTags', $filters))
-            $value = strip_tags($value);
-
         switch(strtolower($filters['type']))
         {
             case 'email':
                 $value = filter_var($value, FILTER_SANITIZE_EMAIL);
                 break;
+
             case 'url';
                 $value = filter_var($value, FILTER_SANITIZE_URL);
                 break;
+
             case 'int':
             case 'pint':
             case 'nint':
                 if (Util::isNumeric($value))
                     $value = intval($value);
                 break;
+
             case 'float':
             case 'pfloat':
             case 'nfloat':
                 if (Util::isNumeric($value))
                     $value = floatval($value);
                 break;
+
             case 'bool':
-                if (preg_match('/^false|off|0|nil|null|no|undefined$/i', $value) || $value = '')
+                if (preg_match('/^(false|off|0|nil|null|no|undefined)$/i', $value) || $value === '')
                     $value = false;
                 else
                     $value = true;
                 break;
-
         }
         return $value;
     }
@@ -280,6 +283,7 @@ class Handler
                 $value = $this->_source[$field];
 
             $filters = $this->_filters[$field];
+
             $this->_data[$field] = $this->filterValue($value, $filters);
         }
     }
@@ -395,7 +399,7 @@ class Handler
             '/integer/i',
             '/positive/i',
             '/negative/i',
-            '/number/i',
+            '/(number|money)/i',
             '/boolean/i',
             '/string/i'
         ], [
@@ -415,7 +419,57 @@ class Handler
     {
         foreach($this->_rules as $field => $rule)
         {
-            if (Util::keyNotSetOrTrue('required', $rule))
+            $type = $this->resolveType(Util::value('type', $rule, 'text'));
+
+            $this->_db_checks[$field] = Util::arrayValue('checks', $rule);
+            $this->_filters[$field] = Util::arrayValue('filters', $rule);
+            $this->_rule_options[$field] = Util::arrayValue('options', $rule);
+
+            $this->_rule_options[$field]['type'] = $this->_filters[$field]['type'] = $type;
+
+            $require_if = Util::arrayValue('requireIf', $rule, []);
+            $condition = Util::value('condition', $require_if, '');
+
+            if ($condition !== '')
+            {
+                $required = false;
+
+                $_field = Util::value('field', $require_if, '');
+                $_field_value = Util::value($_field, $this->_source);
+
+                $_value = Util::value('value', $require_if, '');
+
+                //checkbox and radio inputs are only set if they are checked
+                switch(strtolower($condition))
+                {
+                    case 'checked':
+                        if (!is_null($_field_value))
+                            $required = true;
+                        break;
+
+                    case 'notchecked':
+                        if (is_null($_field_value))
+                            $required = true;
+                        break;
+
+                    case 'equals':
+                    case 'equal':
+                        if ($_value == $_field_value)
+                            $required = true;
+                        break;
+
+                    case 'notequals':
+                    case 'notequal':
+                        if ($_value != $_field_value)
+                            $required = true;
+                        break;
+                }
+                $rule['required'] = $required;
+            }
+            Util::unsetFromArray('requireIf', $rule);
+
+            //boolean fields are optional by default
+            if (Util::keyNotSetOrTrue('required', $rule) && $type !== 'bool')
             {
                 $this->_required_fields[] = $field;
                 $this->_hints[$field] = Util::value('hint', $rule, $field . ' is required');
@@ -425,14 +479,6 @@ class Handler
                 $this->_optional_fields[] = $field;
                 $this->_default_values[$field] = Util::value('default', $rule);
             }
-
-            $this->_db_checks[$field] = Util::arrayValue('checks', $rule);
-            $this->_filters[$field] = Util::arrayValue('filters', $rule);
-            $this->_rule_options[$field] = Util::arrayValue('options', $rule);
-
-            $type = Util::value('type', $rule, 'text');
-            $this->_rule_options[$field]['type'] = $this->_filters[$field]['type'] =
-                $this->resolveType($type);
         }
     }
 
