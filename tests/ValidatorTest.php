@@ -537,7 +537,7 @@ class ValidatorTest extends TestCase
     {
         $this->_validator->validateText(true, 'first_name', null, []);
         $this->assertTrue($this->_validator->fails());
-        $this->assertEquals('first_name field is required',
+        $this->assertEquals('first_name is required',
             $this->_validator->getErrorBag()['first_name']);
     }
 
