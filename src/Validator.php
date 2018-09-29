@@ -291,7 +291,7 @@ class Validator implements ValidatorInterface
 
         if (is_null($value) || $value === '')
         {
-            $this->setError('{_this} field is required', $value);
+            $this->setError('{_this} is required', $value);
             return false;
         }
 
