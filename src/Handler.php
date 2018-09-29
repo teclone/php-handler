@@ -23,6 +23,11 @@ class Handler
     private $_source = null;
 
     /**
+     * array of added fields
+    */
+    private $_added_fields = [];
+
+    /**
      * array of rules to apply
     */
     private $_rules = null;
@@ -483,6 +488,15 @@ class Handler
     }
 
     /**
+     * combines the source and the extended_fields
+    */
+    protected function mergeSource()
+    {
+        $this->_source = array_merge($this->_source, $this->_added_fields);
+        return $this;
+    }
+
+    /**
      * returns boolean indicating if the execute call should proceed
      *@return bool
      *@throws DataSourceNotSetException
@@ -533,10 +547,10 @@ class Handler
             switch($source)
             {
                 case 'get':
-                    $this->_source = &$_GET;
+                    $this->_source = $_GET;
                     break;
                 case 'post':
-                    $this->_source = &$_POST;
+                    $this->_source = $_POST;
                     break;
                 default:
                     $err = $source . ' is not a recognized data source';
@@ -576,6 +590,33 @@ class Handler
     }
 
     /**
+     * adds field to the existing source
+     *
+     *@param string $fieldname - the field name
+     *@param mixed $value - the field value
+     *@return self
+    */
+    public function addField(string $fieldname, $value)
+    {
+        $this->_added_fields[$fieldname] = $value;
+        return $this;
+    }
+
+    /**
+     * adds one or more fields to the existing source
+     *
+     *@param array $fields - array of field name => value pairs
+     *@return self
+    */
+    public function addFields(array $fields)
+    {
+        foreach($fields as $fieldname => $value)
+            $this->addField($fieldname, $value);
+
+        return $this;
+    }
+
+    /**
      * executes the handler
      *
      *@return bool
@@ -587,6 +628,8 @@ class Handler
         if ($this->shouldExecute())
         {
             $this->_executed = true;
+
+            $this->mergeSource();
             $this->processRules();
 
             $this->resolveOptions($this->_hints); //resolve hints
