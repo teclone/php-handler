@@ -684,6 +684,31 @@ class HandlerTest extends TestCase
     }
 
     /**
+     * test that we can add extra fields to our data source
+    */
+    public function testAddField()
+    {
+        $data = [];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+            'last-name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->addFields([
+            'first-name' => 'Harrison',
+            'last-name' => 'Ifeanyichukwu'
+        ])
+            ->execute();
+
+        $this->assertTrue($instance->succeeds());
+        $this->assertEquals('Harrison', $instance->first_name);
+    }
+
+    /**
      * tests for a specific handler feature
     */
     public function executeHandlerFeature(array $data, array $rules, bool $erroneous, array $errors)
