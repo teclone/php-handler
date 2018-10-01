@@ -1,7 +1,7 @@
 <?php
 declare(strict_types = 1);
 
-namespace Forensic\Handler\Test\Unit;
+namespace Forensic\Handler\Test;
 
 use Forensic\Handler\Handler;
 use PHPUnit\Framework\TestCase;
