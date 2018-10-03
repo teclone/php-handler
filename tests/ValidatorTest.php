@@ -500,6 +500,66 @@ class ValidatorTest extends TestCase
         ];
     }
 
+    /**
+     * returns a test file details located in the test Helpers directory
+     *
+     *@return array
+    */
+    public function getTestFileDetails(string $filename, string $type ,
+        int $err_code = UPLOAD_ERR_OK)
+    {
+        return [
+            'name' => $filename,
+            'tmp_name' => getcwd() . '/tests/Helpers/' . $filename,
+            'size' => filesize('tests/Helpers/' . $filename),
+            'type' => $type,
+            'error' => $err_code,
+        ];
+    }
+
+    /**
+     * returns data used in testing file upload error
+    */
+    public function fileUploadErrorDataProvider()
+    {
+        return [
+            'ini size error test' => [
+                UPLOAD_ERR_INI_SIZE,
+                'file size exceeds upload_max_filesize ini directive',
+            ],
+
+            'form size error test' => [
+                UPLOAD_ERR_FORM_SIZE,
+                'file size exceeds max_file_size html form directive',
+            ],
+
+            'no file upload error test' => [
+                UPLOAD_ERR_NO_FILE,
+                'no file upload found',
+            ],
+
+            'no temp folder error test' => [
+                UPLOAD_ERR_NO_TMP_DIR,
+                'no temp folder found for file storage',
+            ],
+
+            'write permission error test' => [
+                UPLOAD_ERR_CANT_WRITE,
+                'permission denied while writing file to disk',
+            ],
+
+            'php extension error test' => [
+                UPLOAD_ERR_EXTENSION,
+                'some loaded extensions aborted file processing',
+            ],
+
+            'unknown error test' => [
+                41,
+                'unknown file upload error',
+            ]
+        ];
+    }
+
     public function setUp()
     {
         parent::setUp();
@@ -656,5 +716,18 @@ class ValidatorTest extends TestCase
     public function testRegexNoneRule(...$args)
     {
         $this->validationRulesTester(...$args);
+    }
+
+    /**
+     * test file upload error validation
+     *@dataProvider fileUploadErrorDataProvider
+    */
+    public function testFileUploadErrorValidation(int $err_code, string $message)
+    {
+        $_FILES['picture'] = $this->getTestFileDetails('file1.jpg', 'image/jpeg', $err_code);
+        $this->_validator->validateFile(true, 'picture', 'file1.jpg', []);
+
+        $this->assertTrue($this->_validator->fails());
+        $this->assertEquals($message, $this->_validator->getError('picture'));
     }
 }
