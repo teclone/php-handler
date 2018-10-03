@@ -125,6 +125,9 @@ class Handler
 
             //range validation
             'range' => 'validateRange',
+
+            //file validation
+            'file' => 'validateFile'
         ];
     }
 
@@ -148,28 +151,35 @@ class Handler
      *@param string $field - field to validate
      *@param mixed $value - field value
      *@param array $options - the rule options
+     *@param int $index - the value index position
      *@return bool
     */
-    protected function runValidation(bool $required, string $field, $value, array $options)
+    protected function runValidation(bool $required, string $field, $value, array $options,
+        int $index)
     {
         $validator = $this->_validator;
 
-        $rule_type = strtolower($options['type']);
-        $method = Util::value($rule_type, $this->getRuleTypesMethodMap());
+        $rule_type = $options['type'];
+        $method = Util::value(strtolower($rule_type), $this->getRuleTypesMethodMap(), 'null');
 
-        if ($method)
-            $validator->{$method}(
-                $required,
-                $field,
-                $value,
-                $options
-            );
-        else if (is_null($method))
-            trigger_error(
-                $options['type'] . ' is not a recognised validation type',
-                E_USER_WARNING
-            );
-
+        if ($method === 'null')
+        {
+            $warning = $rule_type . ' is not a recognised validation type';
+            trigger_error($warning, E_USER_WARNING);
+        }
+        else if ($method !== '')
+        {
+            if ($this->isFileField($field))
+            {
+                $new_value = $value;
+                $validator->{$method}($required, $field, $value, $options, $index, $new_value);
+                $this->_data[$field] = $new_value;
+            }
+            else
+            {
+                $validator->{$method}($required, $field, $value, $options, $index);
+            }
+        }
         return $validator->succeeds();
     }
 
@@ -185,9 +195,10 @@ class Handler
         {
             $rules = $this->_rule_options[$field];
             $values = Util::makeArray($this->_data[$field]);
-            foreach($values as $value)
+
+            foreach($values as $index => $value)
             {
-                if (!$this->runValidation($required, $field, $value, $rules))
+                if (!$this->runValidation($required, $field, $value, $rules, $index))
                     break; //break on first error
             }
         }
@@ -264,32 +275,20 @@ class Handler
     }
 
     /**
-     * gets the fields
+     * returns true if the field type is a file type
+     *
+     *@param string $field - the field
+     *@return bool
     */
-    protected function getFields()
+    protected function isFileField(string $field)
     {
-        //start with required fields
-        foreach ($this->_required_fields as $field) {
-            $value = $this->_source[$field];
-            $filters = $this->_filters[$field];
-            $this->_data[$field] = $this->filterValue($value, $filters);
-        }
-
-        //resolve default fields
-        $this->resolveOptions($this->_default_values);
-
-        //get optional fields
-        foreach ($this->_optional_fields as $field) {
-            //if the optional field is missing, pick its default value
-            $value = null;
-            if ($this->fieldIsMissing($field))
-                $value = $this->_default_values[$field];
-            else
-                $value = $this->_source[$field];
-
-            $filters = $this->_filters[$field];
-
-            $this->_data[$field] = $this->filterValue($value, $filters);
+        switch(strtolower($this->_rule_options[$field]['type']))
+        {
+            case 'file':
+            case 'media':
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -300,26 +299,88 @@ class Handler
     */
     protected function fieldIsMissing(string $field)
     {
-        $source = &$this->_source;
+        $is_file_field = $this->isFileField($field);
+
+        $target = null;
+        if ($is_file_field)
+        {
+            if (!array_key_exists($field, $_FILES))
+                $_FILES[$field] = [];
+
+            $target = Util::value('name', $_FILES[$field]);
+        }
+        else
+        {
+            $target = Util::value($field, $this->_source);
+        }
+
         $is_missing = true;
-        if (isset($source[$field]) && $source[$field] !== '')
+        if(!is_null($target) && $target !== '')
         {
             $is_missing = false;
-            $values = $source[$field];
-            if (is_array($values))
+            if (is_array($target))
             {
-                $source[$field] = [];
-                foreach($values as $value)
+                $items = [];
+                foreach($target as $item)
                 {
-                    if (!is_null($value) && $value !== '')
-                        $source[$field][] = $value;
+                    if (!is_null($item) && $item !== '')
+                        $items[] = $item;
                 }
 
-                if (count($source[$field]) === 0)
+                if ($is_file_field)
+                    $_FILES[$field]['name'] = $items;
+                else
+                    $this->_source[$field] = $items;
+
+                if (count($items) === 0)
                     $is_missing = true;
             }
         }
+
         return $is_missing;
+    }
+
+    /**
+     * runs the get field call
+     *
+     *@param array $fields - array of fields
+    */
+    protected function runGetFields(array $fields)
+    {
+        foreach($fields as $field)
+        {
+            $value = null;
+
+            if($this->isFileField($field))
+                $value = Util::value('name', $_FILES[$field]);
+            else
+                $value = $this->_source[$field];
+
+            $filters = $this->_filters[$field];
+            $this->_data[$field] = $this->filterValue($value, $filters);
+        }
+    }
+
+    /**
+     * gets the fields
+    */
+    protected function getFields()
+    {
+        //get required fields
+        $this->runGetFields($this->_required_fields);
+
+        //resolve default values
+        $this->resolveOptions($this->_default_values);
+
+        //use default value for optional fields that are missing
+        foreach ($this->_optional_fields as $field)
+        {
+            if ($this->fieldIsMissing($field) && !$this->isFileField($field))
+                $this->_source[$field] = $this->_default_values[$field];
+        }
+
+        //get optional fields
+        $this->runGetFields($this->_optional_fields);
     }
 
     /**
@@ -518,8 +579,9 @@ class Handler
     }
 
     /**
-     *@param string|array $source - the data source
-     *@param array $rules - rules to be applied on data
+     *@param string|array [$source] - the data source
+     *@param array [$rules] - rules to be applied on data
+     *@param ValidatorInterface $validator - the validator, defaults to an internal validator
     */
     public function __construct($source = null, array $rules = null,
         ValidatorInterface $validator = null)
@@ -575,6 +637,7 @@ class Handler
     {
         if (is_array($rules))
             $this->_rules = $rules;
+
         return $this;
     }
 
@@ -582,11 +645,14 @@ class Handler
      * sets the validator
      *
      *@param ValidatorInterface $validator - the validator
+     *@return self
     */
     public function setValidator(ValidatorInterface $validator)
     {
         $this->_validator = $validator;
         $this->_validator->setErrorBag($this->_errors);
+
+        return $this;
     }
 
     /**
@@ -687,6 +753,16 @@ class Handler
     }
 
     /**
+     * returns array of all errors
+     *
+     *@return array
+    */
+    public function getErrors()
+    {
+        return $this->_errors;
+    }
+
+    /**
      * returns the data for the given key if it exists, or null
      *@return string|null
      *@throws DataNotFoundException
@@ -697,6 +773,16 @@ class Handler
             return $this->_data[$key];
         else
             throw new DataNotFoundException('No data set for the given key: ' . $key);
+    }
+
+    /**
+     * returns array of all data
+     *
+     *@return array
+    */
+    public function getAllData()
+    {
+        return $this->_data;
     }
 
     /**
