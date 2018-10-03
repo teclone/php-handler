@@ -704,4 +704,55 @@ class Validator implements ValidatorInterface
 
         return $this->validateChoice($required, $field, $value, $options);
     }
+
+    /**
+     * validates file upload
+    */
+    public function validateFile(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
+        {
+            $files = $_FILES[$field];
+
+            //validate file upload error
+            $error_code = Util::makeArray($files['error'])[$index];
+            if ($error_code !== UPLOAD_ERR_OK)
+            {
+                $error = '';
+                switch($error_code)
+                {
+                    case UPLOAD_ERR_INI_SIZE:
+                        $error = 'file size exceeds upload_max_filesize ini directive';
+                        break;
+
+                    case UPLOAD_ERR_FORM_SIZE:
+                        $error = 'file size exceeds max_file_size html form directive';
+                        break;
+
+                    case UPLOAD_ERR_NO_FILE:
+                        $error = 'no file upload found';
+                        break;
+
+                    case UPLOAD_ERR_NO_TMP_DIR:
+                        $error = 'no temp folder found for file storage';
+                        break;
+
+                    case UPLOAD_ERR_CANT_WRITE:
+                        $error = 'permission denied while writing file to disk';
+                        break;
+
+                    case UPLOAD_ERR_EXTENSION:
+                        $error = 'some loaded extensions aborted file processing';
+                        break;
+                    default:
+                        $error = 'unknown file upload error';
+                        break;
+                }
+                return $this->setError($error, $value);
+            }
+        }
+        return $this->succeeds();
+    }
 }
