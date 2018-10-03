@@ -531,14 +531,35 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * test that getError method returns the error string for a given field
+    */
+    public function testGetError()
+    {
+        $error_bag = [
+            'first_name' => 'first name field is required',
+        ];
+
+        $this->_validator->setErrorBag($error_bag);
+        $this->assertEquals(
+            'first name field is required',
+            $this->_validator->getError('first_name')
+        );
+
+        $this->assertNull($this->_validator->getError('last_name'));
+    }
+
+    /**
      * test that required fields are validated accordingly
     */
     public function testRequiredFields()
     {
         $this->_validator->validateText(true, 'first_name', null, []);
+
         $this->assertTrue($this->_validator->fails());
-        $this->assertEquals('first_name is required',
-            $this->_validator->getErrorBag()['first_name']);
+        $this->assertEquals(
+            'first_name is required',
+            $this->_validator->getError('first_name')
+        );
     }
 
     /**
