@@ -5,6 +5,10 @@ namespace Forensic\Handler\Interfaces;
 
 interface ValidatorInterface
 {
+    public function setFileExtensionDetector(
+        FileExtensionDetectorInterface $file_extension_detector
+    );
+
     public function setErrorBag(array &$error_bag);
 
     public function getErrorBag(): array;
