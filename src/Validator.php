@@ -373,6 +373,16 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * returns error message for the given field, else returns null
+     *
+     *@return string|null
+    */
+    public function getError(string $field)
+    {
+        return Util::value($field, $this->_error_bag, null);
+    }
+
+    /**
      * returns a boolean value indicating if the last validation call succeeded
      *
      *@return bool
