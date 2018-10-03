@@ -51,9 +51,15 @@ declare(strict_types = 1);
 namespace Forensic\Handler;
 
 use Forensic\Handler\Interfaces\ValidatorInterface;
+use Forensic\Handler\Interfaces\FileExtensionDetectorInterface;
 
 class Validator implements ValidatorInterface
 {
+    /**
+     * file extension detector
+    */
+    private $_file_extension_detector = null;
+
     /**
      * array of error bag containing all errors detected since the instance creation
     */
@@ -73,6 +79,11 @@ class Validator implements ValidatorInterface
      * current field rule options
     */
     private $_options = null;
+
+    /**
+     * the current field value index
+    */
+    private $_index = null;
 
     /**
      * sets error error message
@@ -183,9 +194,9 @@ class Validator implements ValidatorInterface
      * runs regex rule checks
      *
      *@param string $value - the field value
-     *@param array $options - field rule options
+     *@param array $options, int $index = 0 - field rule options
     */
-    protected function checkRegexRules(string $value, array $options)
+    protected function checkRegexRules(string $value, array $options, int $index = 0)
     {
         //check for regexAll rule
         if ($this->succeeds())
@@ -220,7 +231,7 @@ class Validator implements ValidatorInterface
      *
      *@param mixed $value - the value
      *@param int|float|Datetime $actual - the actual value
-     *@param array $options - the field rules
+     *@param array $options, int $index = 0 - the field rules
      *@param callback [$callback=null] - the callback method
     */
     protected function checkLimitingRules($value, $actual, callable $callback = null,
@@ -304,13 +315,15 @@ class Validator implements ValidatorInterface
      * resets the validator
      *
      *@param string $field - the next field to validate
-     *@param array $options - array of validation options
+     *@param array $options, int $index = 0 - array of validation options
+     *@param int $index = 0 - current field value index
      *@return true
     */
-    protected function reset(string $field, array $options)
+    protected function reset(string $field, array $options, int $index = 0)
     {
         $this->_field = $field;
         $this->_options = $options;
+        $this->_index = $index;
 
         $this->_succeeds = true;
         return true;
@@ -319,10 +332,15 @@ class Validator implements ValidatorInterface
     /**
      *@param array [$error_bag] - the error bag, passed by reference
     */
-    public function __construct(array &$error_bag = [])
+    public function __construct(array &$error_bag = [],
+        FileExtensionDetectorInterface $file_extension_detector = null)
     {
+        if (is_null($file_extension_detector))
+            $file_extension_detector = new FileExtensionDetector;
+
         $this->_succeeds = false;
         $this->setErrorBag($error_bag);
+        $this->setFileExtensionDetector($file_extension_detector);
     }
 
     /**
@@ -333,6 +351,15 @@ class Validator implements ValidatorInterface
     public function setErrorBag(array &$error_bag)
     {
         $this->_error_bag = &$error_bag;
+    }
+
+    /**
+     * sets the file extension detector
+    */
+    public function setFileExtensionDetector(
+        FileExtensionDetectorInterface $file_extension_detector)
+    {
+        $this->_file_extension_detector = $file_extension_detector;
     }
 
     /**
@@ -371,9 +398,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateText(bool $required, string $field, $value, array $options): bool
+    public function validateText(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             //validate the limiting rules
             $len = strlen($value);
@@ -391,9 +420,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateDate(bool $required, string $field, $value, array $options): bool
+    public function validateDate(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             //check date format
             $format = '/^([0-9]{4})([-._:|\/\s])?([0-9]{1,2})\2?([0-9]{1,2})$/';
@@ -441,9 +472,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateInteger(bool $required, string $field, $value, array $options): bool
+    public function validateInteger(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[-+]?\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value));
@@ -462,9 +495,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validatePInteger(bool $required, string $field, $value, array $options): bool
+    public function validatePInteger(bool $required, string $field, $value, array $options,
+        int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[+]?\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value)); //check limiting rules
@@ -483,9 +518,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateNInteger(bool $required, string $field, $value, array $options): bool
+    public function validateNInteger(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^-\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value)); //check limiting rules
@@ -504,9 +541,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateFloat(bool $required, string $field, $value, array $options): bool
+    public function validateFloat(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^(?:[-+]?\d+(\.\d+)?|\.\d+)$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -525,9 +564,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validatePFloat(bool $required, string $field, $value, array $options): bool
+    public function validatePFloat(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^(?:\+?\d+(\.\d+)?|\.\d+)$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -546,9 +587,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateNFloat(bool $required, string $field, $value, array $options): bool
+    public function validateNFloat(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (preg_match('/^[-]\d+(\.\d+)?$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -566,9 +609,11 @@ class Validator implements ValidatorInterface
      *
      *@return bool
     */
-    public function validateEmail(bool $required, string $field, $value, array $options): bool
+    public function validateEmail(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             if (filter_var($value, FILTER_VALIDATE_EMAIL))
                 $this->checkRegexRules($value, $options);
@@ -587,9 +632,11 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateURL(bool $required, string $field, $value, array $options): bool
+    public function validateURL(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             $format = '/^'
                 . '(?:(?:(https|http|ftp):\/\/))?' //match optional scheme
@@ -616,10 +663,12 @@ class Validator implements ValidatorInterface
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
-    public function validateChoice(bool $required, string $field, $value, array $options): bool
+    public function validateChoice(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
         $original_value = $value;
-        if ($this->reset($field, $options) && $this->shouldValidate($required, $field, $value))
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
         {
             $choices = Util::arrayValue('choices', $options);
             if (!in_array($value, $choices) && !in_array($original_value, $choices))
@@ -634,7 +683,8 @@ class Validator implements ValidatorInterface
     /**
      * validates range of options, either numbers or alphabets with optional step increment
     */
-    public function validateRange(bool $required, string $field, $value, array $options): bool
+    public function validateRange(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
     {
         $from = Util::value('from', $options);
         $to = Util::value('to', $options);
