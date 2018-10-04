@@ -555,12 +555,51 @@ class ValidatorTest extends TestCase
                     'min' => $size + 1,
                     'minErr' => 'picture should be at least ' . ($size + 1) . ' bytes',
                 ],
+                true,
                 'picture should be at least ' . ($size + 1) . ' bytes',
             ],
             'min success test' => [
                 [
                     'min' => $size,
                 ],
+                false,
+                '',
+            ],
+        ];
+    }
+
+    /**
+     * provides data used in testing file extension correctness
+    */
+    public function fileExtensionTestDataProvider()
+    {
+        return [
+            'spoofed extension test' => [
+                'spoofed.png',
+                'image/png',
+                [],
+                true,
+                'file extension spoofing detected',
+            ],
+            'txt extension test' => [
+                'file2.txt',
+                'text/plain',
+                [],
+                false,
+                '',
+            ],
+            'binary file extension test' => [
+                'file1.jpg',
+                'imag/jpeg',
+                [],
+                false,
+                '',
+            ],
+            'binary file without extension test' => [
+                'file3',
+                'imag/jpeg',
+                [],
+                false,
                 '',
             ],
         ];
@@ -725,38 +764,72 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * test file upload error validation
-     *@dataProvider fileUploadErrorDataProvider
+     * run file validation feature
     */
-    public function testFileUploadErrorValidation(int $err_code, string $message)
+    public function runFileValidationFeature(string $filename, string $mime, int $err_code,
+        array $options, bool $is_error, string $message = '')
     {
-        $_FILES['picture'] = getTestFileDetails('file1.jpg', 'image/jpeg', $err_code);
-        $this->_validator->validateFile(true, 'picture', 'file1.jpg', []);
+        $_FILES['file'] = getTestFileDetails($filename, $mime, $err_code);
+        $this->_validator->validateFile(true, 'file', $filename, $options);
 
-        $this->assertTrue($this->_validator->fails());
-        $this->assertEquals($message, $this->_validator->getError('picture'));
-    }
-
-    /**
-     *@dataProvider fileSizeLimitDataProvider
-    */
-    public function testFileSizeLimitingRules(array $options, string $message = '')
-    {
-        $_FILES['picture'] = getTestFileDetails('file1.jpg', 'image/jpeg');
-        $rules = [
-            'picture' => [
-                'type' => 'file'
-            ],
-        ];
-        $this->_validator->validateFile(true, 'picture', 'file1.jpg', $options);
-        if ($message !== '')
+        if ($is_error)
         {
             $this->assertFalse($this->_validator->succeeds());
-            $this->assertEquals($message, $this->_validator->getError('picture'));
+            $this->assertEquals($message, $this->_validator->getError('file'));
         }
         else
         {
             $this->assertTrue($this->_validator->succeeds());
         }
+    }
+
+    /**
+     * test file upload error validation feature
+     *@dataProvider fileUploadErrorDataProvider
+    */
+    public function testFileUploadErrorValidationFeature(int $err_code, string $message)
+    {
+        $this->runFileValidationFeature(
+            'file1.jpg',
+            'image/jpeg',
+            $err_code,
+            [],
+            true,
+            $message
+        );
+    }
+
+    /**
+     * test file size limit rule validation
+     *@dataProvider fileSizeLimitDataProvider
+    */
+    public function testFileSizeLimitingRules(array $options, bool $is_error,
+        string $message = '')
+    {
+        $this->runFileValidationFeature(
+            'file1.jpg',
+            'image/jpeg',
+            UPLOAD_ERR_OK,
+            $options,
+            $is_error,
+            $message
+        );
+    }
+
+    /**
+     * test file extension validation
+     *@dataProvider fileExtensionTestDataProvider
+    */
+    public function testFileExtensionValidation(string $filename, string $mime, array $options,
+        bool $is_error, string $message = '')
+    {
+        $this->runFileValidationFeature(
+            $filename,
+            $mime,
+            UPLOAD_ERR_OK,
+            $options,
+            $is_error,
+            $message
+        );
     }
 }
