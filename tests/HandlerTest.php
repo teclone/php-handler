@@ -140,6 +140,9 @@ class HandlerTest extends TestCase
                     'hobbies' => [
                         'type' => 'text',
                     ],
+                    'profile-picture' => [
+                        'type' => 'file'
+                    ]
                 ],
                 // is erronous
                 true,
@@ -147,6 +150,7 @@ class HandlerTest extends TestCase
                 [
                     'last_name' => 'last_name is required',
                     'languages' => 'languages field is required',
+                    'profile-picture' => 'profile-picture is required'
                 ]
             ],
         ];
@@ -780,6 +784,27 @@ class HandlerTest extends TestCase
     }
 
     /**
+     * test that the getErrors method returns all errors as array
+    */
+    public function testGetErrorsMethod()
+    {
+        $data = [];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->fails());
+
+        $this->assertEquals([
+            'first-name' => 'first-name is required',
+        ], $instance->getErrors());
+    }
+
+    /**
      * test the get data method
     */
     public function testGetDataMethod()
@@ -803,6 +828,29 @@ class HandlerTest extends TestCase
         //test that it throw exception if key is not known
         $this->expectException(DataNotFoundException::class);
         $instance->getData('last-name');
+    }
+
+    /**
+     * test that the getAllData method returns all data as an array
+    */
+    public function testGetAllDataMethod()
+    {
+        $data = [
+            'first-name' => 'Harrison'
+        ];
+        $rules = [
+            'first-name' => [
+                'type' => 'text'
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+
+        $this->assertEquals([
+            'first-name' => 'Harrison'
+        ], $instance->getAllData());
     }
 
     /**
@@ -857,5 +905,23 @@ class HandlerTest extends TestCase
 
         $this->expectException(Warning::class);
         $instance->execute();
+    }
+
+    /**
+     * test file handling
+    */
+    public function testFileHandling()
+    {
+        $rules = [
+            'picture' => [
+                'type' => 'file'
+            ],
+        ];
+        $_FILES['picture'] = getTestFileDetails('file1.jpg', 'image/jpeg');
+        $instance = new Handler([], $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+        $this->assertEquals('file1.jpg', $instance->picture);
     }
 }
