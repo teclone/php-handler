@@ -41,8 +41,7 @@ class FileExtensionDetectorTest extends TestCase
     {
         $magic_byte = '';
         $result = $this->_file_ext_detector->detect($filename, $magic_byte);
-        if ($exts != $result)
-            var_dump($magic_byte);
+
         $this->assertEquals($exts, $result);
     }
 
@@ -63,6 +62,6 @@ class FileExtensionDetectorTest extends TestCase
     public function testFileReadException()
     {
         $this->expectException(FileReadException::class);
-        $this->_file_ext_detector->detect('tests/Helpers/file3.txt');
+        $this->_file_ext_detector->detect('/root/');
     }
 }
