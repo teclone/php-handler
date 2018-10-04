@@ -501,23 +501,6 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * returns a test file details located in the test Helpers directory
-     *
-     *@return array
-    */
-    public function getTestFileDetails(string $filename, string $type ,
-        int $err_code = UPLOAD_ERR_OK)
-    {
-        return [
-            'name' => $filename,
-            'tmp_name' => getcwd() . '/tests/Helpers/' . $filename,
-            'size' => filesize('tests/Helpers/' . $filename),
-            'type' => $type,
-            'error' => $err_code,
-        ];
-    }
-
-    /**
      * returns data used in testing file upload error
     */
     public function fileUploadErrorDataProvider()
@@ -557,6 +540,29 @@ class ValidatorTest extends TestCase
                 41,
                 'unknown file upload error',
             ]
+        ];
+    }
+
+    /**
+     * return array of data used for testing file size limit
+    */
+    public function fileSizeLimitDataProvider()
+    {
+        $size = filesize('tests/Helpers/file1.jpg');
+        return [
+            'min error test' => [
+                [
+                    'min' => $size + 1,
+                    'minErr' => 'picture should be at least ' . ($size + 1) . ' bytes',
+                ],
+                'picture should be at least ' . ($size + 1) . ' bytes',
+            ],
+            'min success test' => [
+                [
+                    'min' => $size,
+                ],
+                '',
+            ],
         ];
     }
 
@@ -724,10 +730,33 @@ class ValidatorTest extends TestCase
     */
     public function testFileUploadErrorValidation(int $err_code, string $message)
     {
-        $_FILES['picture'] = $this->getTestFileDetails('file1.jpg', 'image/jpeg', $err_code);
+        $_FILES['picture'] = getTestFileDetails('file1.jpg', 'image/jpeg', $err_code);
         $this->_validator->validateFile(true, 'picture', 'file1.jpg', []);
 
         $this->assertTrue($this->_validator->fails());
         $this->assertEquals($message, $this->_validator->getError('picture'));
+    }
+
+    /**
+     *@dataProvider fileSizeLimitDataProvider
+    */
+    public function testFileSizeLimitingRules(array $options, string $message = '')
+    {
+        $_FILES['picture'] = getTestFileDetails('file1.jpg', 'image/jpeg');
+        $rules = [
+            'picture' => [
+                'type' => 'file'
+            ],
+        ];
+        $this->_validator->validateFile(true, 'picture', 'file1.jpg', $options);
+        if ($message !== '')
+        {
+            $this->assertFalse($this->_validator->succeeds());
+            $this->assertEquals($message, $this->_validator->getError('picture'));
+        }
+        else
+        {
+            $this->assertTrue($this->_validator->succeeds());
+        }
     }
 }
