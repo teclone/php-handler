@@ -233,9 +233,10 @@ class Validator implements ValidatorInterface
      *@param int|float|Datetime $actual - the actual value
      *@param array $options, int $index = 0 - the field rules
      *@param callback [$callback=null] - the callback method
+     *@return bool
     */
     protected function checkLimitingRules($value, $actual, callable $callback = null,
-        string $suffix = '')
+        string $suffix = ''): bool
     {
         $options = $this->_options;
         //check the min limit
@@ -285,6 +286,8 @@ class Validator implements ValidatorInterface
                 return $this->setError(Util::value('ltErr',$options, $default_err), $value);
             }
         }
+
+        return $this->succeeds();
     }
 
     /**
@@ -752,6 +755,11 @@ class Validator implements ValidatorInterface
                 }
                 return $this->setError($error, $value);
             }
+
+            //validate limiting rules
+            $file_size = Util::makeArray($files['size'])[$index];
+            if (!$this->checkLimitingRules($value, $file_size))
+                return $this->succeeds();
         }
         return $this->succeeds();
     }
