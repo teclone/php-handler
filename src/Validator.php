@@ -760,6 +760,32 @@ class Validator implements ValidatorInterface
             $file_size = Util::makeArray($files['size'])[$index];
             if (!$this->checkLimitingRules($value, $file_size))
                 return $this->succeeds();
+
+            //test file extension
+            $magic_byte = '';
+            $ext = '';
+
+            $temp_filename = Util::makeArray($files['tmp_name'])[$index];
+            $exts = $this->_file_extension_detector->detect($temp_filename, $magic_byte);
+
+            //if the detected ext is txt, use it
+            if (in_array('txt', $exts))
+            {
+                $ext = 'txt';
+            }
+            else if (preg_match('/\.(\w+)$/', $value, $matches))
+            {
+                /**if the file name contains ext set it as error if the extension is not
+                 * our list of detected extensions
+                */
+                $ext = preg_replace(['/jpeg/'], ['jpg'], strtolower($matches[1]));
+                if (!in_array($ext, $exts))
+                    return $this->setError('file extension spoofing detected', $value);
+            }
+            else
+            {
+                $ext = $exts[0];
+            }
         }
         return $this->succeeds();
     }
