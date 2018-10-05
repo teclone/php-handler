@@ -849,6 +849,36 @@ class Validator implements ValidatorInterface
                     Util::value('mimeErr', $options, '".' . $ext . '" file extension is not accepted'),
                     $value
                 );
+
+            $move_to = Util::value('moveTo', $options, '');
+            //move file to some other location if moveTo option is set
+            if ($move_to !== '')
+            {
+                $move_to = preg_replace('/\/+$/', '', $move_to) . '/';
+                if (!is_dir($move_to))
+                    throw new DirectoryNotFoundException($move_to . ' does not exist');
+
+                //compute a hash for the filename
+                $filename = bin2hex(random_bytes(16)) . '.' . $ext;
+                $move_to .= $filename;
+
+                try
+                {
+                    //rename will throw error if write permission is denied
+                    if(rename($temp_filename, $move_to))
+                        $new_value = $filename;
+                    else
+                        throw new Exception('error occured while moving uploaded file');
+                }
+                catch(Exception $ex)
+                {
+                    throw new FileMoveException(
+                        Util::value('moveErr', $options, 'error occured while moving uploaded file'),
+                        0,
+                        $ex
+                    );
+                }
+            }
         }
         return $this->succeeds();
     }
