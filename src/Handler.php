@@ -160,7 +160,7 @@ class Handler
         $validator = $this->_validator;
 
         $rule_type = $options['type'];
-        $method = Util::value(strtolower($rule_type), $this->getRuleTypesMethodMap(), 'null');
+        $method = Util::value($rule_type, $this->getRuleTypesMethodMap(), 'null');
 
         if ($method === 'null')
         {
@@ -173,7 +173,12 @@ class Handler
             {
                 $new_value = $value;
                 $validator->{$method}($required, $field, $value, $options, $index, $new_value);
-                $this->_data[$field] = $new_value;
+
+                //put the calculated file hash
+                if(is_array($this->_data[$field]))
+                    $this->_data[$field][$index] = $new_value;
+                else
+                    $this->_data[$field] = $new_value;
             }
             else
             {
@@ -240,7 +245,7 @@ class Handler
         else if (Util::keySetAndTrue('toLower', $filters))
             $value = strtolower($value);
 
-        switch(strtolower($filters['type']))
+        switch($filters['type'])
         {
             case 'email':
                 $value = filter_var($value, FILTER_SANITIZE_EMAIL);
@@ -282,7 +287,7 @@ class Handler
     */
     protected function isFileField(string $field)
     {
-        switch(strtolower($this->_rule_options[$field]['type']))
+        switch($this->_rule_options[$field]['type'])
         {
             case 'file':
             case 'media':
@@ -475,7 +480,7 @@ class Handler
             'float',
             'bool',
             'text'
-        ], $type);
+        ], strtolower($type));
     }
 
     /**
