@@ -46,6 +46,33 @@ class FileExtensionDetectorTest extends TestCase
     }
 
     /**
+     * test the resolve extension method
+    */
+    public function testResolveExtension()
+    {
+        //test that it converts ext to lower case
+        $this->assertEquals('png', $this->_file_ext_detector->resolveExtension('PNG'));
+
+        //test that it returns jpg for jpeg extensions
+        $this->assertEquals('jpg', $this->_file_ext_detector->resolveExtension('jpeg'));
+    }
+
+    /**
+     * test the resolve extensions method
+    */
+    public function testResolveExtensions()
+    {
+        //test that it correctly resolves all extensions in the array
+        $this->assertEquals([], $this->_file_ext_detector->resolveExtensions([]));
+
+        //test that it returns jpg for jpeg extensions
+        $this->assertEquals(
+            ['jpg', 'png'],
+            $this->_file_ext_detector->resolveExtensionS(['jpeg', 'PNG'])
+        );
+    }
+
+    /**
      * test that the detect method throws file not found exception error if file
      * is not found
     */
