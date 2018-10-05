@@ -17,3 +17,27 @@ function getTestFileDetails(string $filename, string $type ,
         'error' => $err_code,
     ];
 }
+
+/**
+ * returns a test multi file details for files located in the test Helpers directory
+ *
+ *@return array
+*/
+function getTestMultiFileDetails(array $filenames, array $mimes, array $err_codes)
+{
+    return [
+        'name' => $filenames,
+
+        'tmp_name' => array_map(function($filename) {
+            return getcwd() . '/tests/Helpers/' . $filename;
+        }, $filenames),
+
+        'size' => array_map(function($filename) {
+            filesize('tests/Helpers/' . $filename);
+        }, $filenames),
+
+        'type' => $mimes,
+
+        'error' => $err_codes,
+    ];
+}
