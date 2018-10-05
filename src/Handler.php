@@ -145,6 +145,19 @@ class Handler
     }
 
     /**
+     * sets the data for a given field, only priviledged codes can set data
+     *
+     *@param string $field - the field data
+     *@param mixed $value
+     *@return self
+    */
+    protected function setData(string $field, $value)
+    {
+        $this->_data[$field] = $value;
+        return $this;
+    }
+
+    /**
      * runs validation on the given field whose value is the given value
      *
      *@param bool $required - boolean indicating if field is required
@@ -362,7 +375,7 @@ class Handler
                 $value = $this->_source[$field];
 
             $filters = $this->_filters[$field];
-            $this->_data[$field] = $this->filterValue($value, $filters);
+            $this->setData($field, $this->filterValue($value, $filters));
         }
     }
 
