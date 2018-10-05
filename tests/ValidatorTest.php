@@ -6,6 +6,8 @@ namespace Forensic\Handler\Test;
 use PHPUnit\Framework\TestCase;
 use Forensic\Handler\Validator;
 use Forensic\Handler\DateTime;
+use Forensic\Handler\Exceptions\DirectoryNotFoundException;
+use Forensic\Handler\Exceptions\FileMoveException;
 
 class ValidatorTest extends TestCase
 {
@@ -355,6 +357,43 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * provides data used for validating regex rule option
+    */
+    public function regexRuleTestDataProvider()
+    {
+        return [
+            'correct data set' => [
+                'validateText',
+                'color',
+                ['white', 'green', 'red'],
+                [
+                    'regex' => [
+                        'test' => '/^(orange|white|red|black|green|purple|voilet)$/',
+                        'err' => '{this} is not a valid color',
+                    ],
+                ],
+            ],
+
+            'wrong data set' => [
+                'validateText',
+                'color',
+                ['london', 'nigeria', '2222'],
+                [
+                    'regex' => [
+                        'test' => '/^(orange|white|red|black|green|purple|voilet)$/',
+                        'err' => '{this} is not a valid color',
+                    ],
+                ],
+                [
+                    '"london" is not a valid color',
+                    '"nigeria" is not a valid color',
+                    '2222 is not a valid color'
+                ]
+            ],
+        ];
+    }
+
+    /**
      * provides data used for validating regexAll rules
     */
     public function regexAllRuleTestDataProvider()
@@ -602,6 +641,15 @@ class ValidatorTest extends TestCase
                 false,
                 '',
             ],
+            'mimes test' => [
+                'file2.txt',
+                'text/plain',
+                [
+                    'mimes' => array('jpeg', 'png', 'gif')
+                ],
+                true,
+                '".txt" file extension is not accepted',
+            ],
         ];
     }
 
@@ -735,6 +783,14 @@ class ValidatorTest extends TestCase
      *@dataProvider ltLimitRuleTestDataProvider
     */
     public function testLtLimitRule(...$args)
+    {
+        $this->validationRulesTester(...$args);
+    }
+
+    /**
+     *@dataProvider regexRuleTestDataProvider
+    */
+    public function testRegexRule(...$args)
     {
         $this->validationRulesTester(...$args);
     }
