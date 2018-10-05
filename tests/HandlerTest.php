@@ -223,7 +223,7 @@ class HandlerTest extends TestCase
                     'remember-me' => false,
                     'terms-and-conditions' => true,
                     'fav-numbers' => array(4, 7, 10, 11),
-                    'height' => '5.4',
+                    'height' => 5.4,
                     'email' => 'Harrisonifeanyichukwu@gmail.com',
                     'website' => 'http://www.fjsfoundations.com',
                     'alpha-one' => 'A',
@@ -923,5 +923,89 @@ class HandlerTest extends TestCase
 
         $this->assertTrue($instance->succeeds());
         $this->assertEquals('file1.jpg', $instance->picture);
+    }
+
+    /**
+     * test multi file handling
+    */
+    public function testMultiFileHandling()
+    {
+        $filenames = array('file1.jpg', 'file2.txt', 'file3');
+        $mimes = array('image/jpeg', 'text/plain', 'octet/stream');
+        $error_codes = array_fill(0, 3, UPLOAD_ERR_OK);
+
+        $rules = [
+            'files' => [
+                'type' => 'file'
+            ],
+        ];
+
+        $_FILES['files'] = getTestMultiFileDetails($filenames, $mimes, $error_codes);
+        $instance = new Handler([], $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+        $this->assertEquals(array('file1.jpg', 'file2.txt', 'file3'), $instance->files);
+    }
+
+    /**
+     * test multi file handling with moveTo option
+    */
+    public function testMultiFileHandlingWithMoveToOption()
+    {
+        $filenames = array('file1.jpg', 'file2.txt', 'file3');
+        $mimes = array('image/jpeg', 'text/plain', 'octet/stream');
+        $error_codes = array_fill(0, 3, UPLOAD_ERR_OK);
+
+        $rules = [
+            'files' => [
+                'type' => 'file',
+                'options' => [
+                    'moveTo' => 'tests/Helpers'
+                ]
+            ],
+        ];
+
+        $_FILES['files'] = getTestMultiFileDetails($filenames, $mimes, $error_codes);
+        $instance = new Handler([], $rules);
+        $instance->execute();
+
+        $this->assertTrue($instance->succeeds());
+        $files = $instance->files;
+
+        $this->assertNotEquals($filenames, $files);
+        foreach($files as $index => $file)
+        {
+            $this->assertFileExists('tests/Helpers/' . $file);
+            rename('tests/Helpers/' . $file, 'tests/Helpers/' . $filenames[$index]);
+        }
+    }
+
+    /**
+     * test _index validation error reference
+    */
+    public function testValidationValueIndexReference()
+    {
+        $data = [
+            'colors' => array('orange', 'white', 'red', 'london')
+        ];
+        $rules = [
+            'colors' => [
+                'options' => [
+                    'regex' => [
+                        'test' => '/^(orange|white|red|black|green|purple|voilet)$/',
+                        'err' => 'color number {_index} is not a valid color'
+                    ],
+                ],
+            ],
+        ];
+        $instance = new Handler($data, $rules);
+        $instance->execute();
+
+        $this->assertFalse($instance->succeeds());
+        $this->assertEquals(
+            'color number 4 is not a valid color',
+            $instance->getError('colors')
+        );
     }
 }
