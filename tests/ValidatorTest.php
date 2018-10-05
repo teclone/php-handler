@@ -888,4 +888,51 @@ class ValidatorTest extends TestCase
             $message
         );
     }
+
+    /**
+     * test that the file validator throws DirectoryNotFoundException if the moveTo folder
+     * does not exists
+    */
+    public function testFileMoveDirectoryNotFoundException()
+    {
+        $_FILES['file'] = getTestFileDetails('file1.jpg', 'image.jpeg');
+
+        $this->expectException(DirectoryNotFoundException::class);
+        $this->_validator->validateFile(true, 'file', 'file1.jpg', [
+            'moveTo' => 'tests/unknown'
+        ]);
+    }
+
+    /**
+     * test that the file validator sets appropriate error if uploaded file could not be moved
+    */
+    public function testFileMoveWritePermissionDenial()
+    {
+        $_FILES['file'] = getTestFileDetails('file1.jpg', 'image.jpeg');
+
+        $this->expectException(FileMoveException::class);
+        $this->_validator->validateFile(true, 'file', 'file1.jpg', [
+            'moveTo' => '/root'
+        ]);
+    }
+
+    /**
+     * test that the file validator successfully moves the file if the moveTo exists and if the
+     * appropriate write permission exist. test also that the $new_value reference parameter
+     * is set accordingly to the files computed hash
+    */
+    public function testSuccessfulFileMove()
+    {
+        $_FILES['file'] = getTestFileDetails('file1.jpg', 'image.jpeg');
+
+        $new_value = '';
+        $this->_validator->validateFile(true, 'file', 'file1.jpg', [
+            'moveTo' => 'tests/Helpers'
+        ], 0, $new_value);
+
+        $this->assertNotEquals('', $new_value);
+        $this->assertFileExists('tests/Helpers/' . $new_value);
+
+        rename('tests/Helpers/' . $new_value, 'tests/Helpers/file1.jpg');
+    }
 }
