@@ -9,6 +9,14 @@ declare(strict_types = 1);
  *
  * Their is the regex family options that include
  *
+ * regex is array of containing test regex expression and associated err. The value must match
+ * the regex test else, it is flagged as error
+ *
+ * e.g 'regex' => [
+ *          'test' => '/regex to test/',
+ *          'err' => 'error to set if value does not match regex test'
+ *      ]
+ *
  * regexAll, contains array of regex expressions that the value must match. The value
  * must match all the regex all expressions, else it is flagged as an error
  *
@@ -52,6 +60,9 @@ namespace Forensic\Handler;
 
 use Forensic\Handler\Interfaces\ValidatorInterface;
 use Forensic\Handler\Interfaces\FileExtensionDetectorInterface;
+use Forensic\Handler\Exceptions\DirectoryNotFoundException;
+use Exception;
+use Forensic\Handler\Exceptions\FileMoveException;
 
 class Validator implements ValidatorInterface
 {
@@ -107,10 +118,56 @@ class Validator implements ValidatorInterface
 
                 case '_this':
                     return $this->_field;
+
+                case '_index':
+                    return $this->_index + 1;
             }
         }, $err);
         $this->_succeeds = false;
         return false;
+    }
+
+    /**
+     * check file upload error
+     *
+     *@return bool
+    */
+    protected function checkFileUploadError(int $error_code, string $value)
+    {
+        if ($error_code === UPLOAD_ERR_OK)
+            return true;
+
+        $error = '';
+        switch($error_code)
+        {
+            case UPLOAD_ERR_INI_SIZE:
+                $error = 'file size exceeds upload_max_filesize ini directive';
+                break;
+
+            case UPLOAD_ERR_FORM_SIZE:
+                $error = 'file size exceeds max_file_size html form directive';
+                break;
+
+            case UPLOAD_ERR_NO_FILE:
+                $error = 'no file upload found';
+                break;
+
+            case UPLOAD_ERR_NO_TMP_DIR:
+                $error = 'no temp folder found for file storage';
+                break;
+
+            case UPLOAD_ERR_CANT_WRITE:
+                $error = 'permission denied while writing file to disk';
+                break;
+
+            case UPLOAD_ERR_EXTENSION:
+                $error = 'some loaded extensions aborted file processing';
+                break;
+            default:
+                $error = 'unknown file upload error';
+                break;
+        }
+        return $this->setError($error, $value);
     }
 
     /**
@@ -191,6 +248,24 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * checks the regex rule
+     *
+     *@param mixed $value - the value
+     *@param array $regex - array of regex test expression
+    */
+    protected function regexCheck($value, array $regex)
+    {
+        $test = Util::value('test', $regex, null);
+        if (!is_null($test) && !preg_match($test, $value))
+            return $this->setError(
+                Util::value('err', $regex, '{this} is not a valid value'),
+                $value
+            );
+        else
+            return true;
+    }
+
+    /**
      * runs regex rule checks
      *
      *@param string $value - the field value
@@ -198,6 +273,10 @@ class Validator implements ValidatorInterface
     */
     protected function checkRegexRules(string $value, array $options, int $index = 0)
     {
+        //check for regex rule
+        if ($this->succeeds())
+            $this->regexCheck($value, Util::arrayValue('regex', $options));
+
         //check for regexAll rule
         if ($this->succeeds())
             $this->regexCheckAll($value, Util::arrayValue('regexAll', $options));
@@ -209,6 +288,8 @@ class Validator implements ValidatorInterface
         //check for regexNone rule
         if ($this->succeeds())
             $this->regexCheckNone($value, Util::arrayValue('regexNone', $options));
+
+        return $this->succeeds();
     }
 
     /**
@@ -710,6 +791,9 @@ class Validator implements ValidatorInterface
 
     /**
      * validates file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
     */
     public function validateFile(bool $required, string $field, $value,
     array $options, int $index = 0, string &$new_value = null): bool
@@ -721,40 +805,8 @@ class Validator implements ValidatorInterface
 
             //validate file upload error
             $error_code = Util::makeArray($files['error'])[$index];
-            if ($error_code !== UPLOAD_ERR_OK)
-            {
-                $error = '';
-                switch($error_code)
-                {
-                    case UPLOAD_ERR_INI_SIZE:
-                        $error = 'file size exceeds upload_max_filesize ini directive';
-                        break;
-
-                    case UPLOAD_ERR_FORM_SIZE:
-                        $error = 'file size exceeds max_file_size html form directive';
-                        break;
-
-                    case UPLOAD_ERR_NO_FILE:
-                        $error = 'no file upload found';
-                        break;
-
-                    case UPLOAD_ERR_NO_TMP_DIR:
-                        $error = 'no temp folder found for file storage';
-                        break;
-
-                    case UPLOAD_ERR_CANT_WRITE:
-                        $error = 'permission denied while writing file to disk';
-                        break;
-
-                    case UPLOAD_ERR_EXTENSION:
-                        $error = 'some loaded extensions aborted file processing';
-                        break;
-                    default:
-                        $error = 'unknown file upload error';
-                        break;
-                }
-                return $this->setError($error, $value);
-            }
+            if (!$this->checkFileUploadError($error_code, $value))
+                return $this->succeeds();
 
             //validate limiting rules
             $file_size = Util::makeArray($files['size'])[$index];
@@ -778,7 +830,7 @@ class Validator implements ValidatorInterface
                 /**if the file name contains ext set it as error if the extension is not
                  * our list of detected extensions
                 */
-                $ext = preg_replace(['/jpeg/'], ['jpg'], strtolower($matches[1]));
+                $ext = $this->_file_extension_detector->resolveExtension($matches[1]);
                 if (!in_array($ext, $exts))
                     return $this->setError('file extension spoofing detected', $value);
             }
@@ -786,6 +838,17 @@ class Validator implements ValidatorInterface
             {
                 $ext = $exts[0];
             }
+
+            //validate mimes
+            $mimes = $this->_file_extension_detector->resolveExtensions(
+                Util::arrayValue('mimes', $options)
+            );
+
+            if(count($mimes) > 0 && !in_array($ext, $mimes))
+                return $this->setError(
+                    Util::value('mimeErr', $options, '".' . $ext . '" file extension is not accepted'),
+                    $value
+                );
         }
         return $this->succeeds();
     }
