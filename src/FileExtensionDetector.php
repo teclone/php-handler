@@ -38,6 +38,34 @@ class FileExtensionDetector implements FileExtensionDetectorInterface
     ];
 
     /**
+     * resolves a given extension to something compatible with its internal extension
+     *
+     *@param string $ext - the extension
+     *@return string
+    */
+    public function resolveExtension(string $ext): string
+    {
+        $ext = strtolower($ext);
+        switch($ext)
+        {
+            case 'jpeg':
+                return 'jpg';
+        }
+        return $ext;
+    }
+
+    /**
+     * resolves array of given extensions to what is compatible with its internal extensions
+     *
+     *@param array $exts - array of extensions
+     *@return array
+    */
+    public function resolveExtensions(array $exts): array
+    {
+        return array_map([$this, 'resolveExtension'], $exts);
+    }
+
+    /**
      * detects and returns array of possible file extensions
      *
      *@param string $filename - the file absolute path
