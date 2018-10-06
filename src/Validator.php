@@ -63,69 +63,16 @@ use Forensic\Handler\Interfaces\FileExtensionDetectorInterface;
 use Forensic\Handler\Exceptions\DirectoryNotFoundException;
 use Exception;
 use Forensic\Handler\Exceptions\FileMoveException;
+use Forensic\Handler\Traits\Common;
 
 class Validator implements ValidatorInterface
 {
+    use Common;
+
     /**
      * file extension detector
     */
     private $_file_extension_detector = null;
-
-    /**
-     * array of error bag containing all errors detected since the instance creation
-    */
-    private $_error_bag = [];
-
-    /**
-     * boolean property indicating if the last validation succeeded
-    */
-    private $_succeeds = null;
-
-    /**
-     * current field under validation
-    */
-    private $_field = null;
-
-    /**
-     * current field rule options
-    */
-    private $_options = null;
-
-    /**
-     * the current field value index
-    */
-    private $_index = null;
-
-    /**
-     * sets error error message
-     *
-     *@param string $err - the error message
-     *@param mixed $value - the value
-    */
-    protected function setError(string $err, $value)
-    {
-        if (!Util::isNumeric($value))
-            $value = '"' . $value . '"';
-
-        $this->_error_bag[$this->_field] = preg_replace_callback(
-            '/\{([^}]+)\}/', function($matches) use ($value) {
-            $capture = $matches[1];
-
-            switch(strtolower($capture))
-            {
-                case 'this':
-                    return $value;
-
-                case '_this':
-                    return $this->_field;
-
-                case '_index':
-                    return $this->_index + 1;
-            }
-        }, $err);
-        $this->_succeeds = false;
-        return false;
-    }
 
     /**
      * check file upload error
@@ -396,24 +343,6 @@ class Validator implements ValidatorInterface
     }
 
     /**
-     * resets the validator
-     *
-     *@param string $field - the next field to validate
-     *@param array $options, int $index = 0 - array of validation options
-     *@param int $index = 0 - current field value index
-     *@return true
-    */
-    protected function reset(string $field, array $options, int $index = 0)
-    {
-        $this->_field = $field;
-        $this->_options = $options;
-        $this->_index = $index;
-
-        $this->_succeeds = true;
-        return true;
-    }
-
-    /**
      *@param array [$error_bag] - the error bag, passed by reference
     */
     public function __construct(array &$error_bag = [],
@@ -428,62 +357,12 @@ class Validator implements ValidatorInterface
     }
 
     /**
-     * sets the validator error bag
-     *
-     *@param array $error_bag - the error bag, passed by reference
-    */
-    public function setErrorBag(array &$error_bag)
-    {
-        $this->_error_bag = &$error_bag;
-    }
-
-    /**
      * sets the file extension detector
     */
     public function setFileExtensionDetector(
         FileExtensionDetectorInterface $file_extension_detector)
     {
         $this->_file_extension_detector = $file_extension_detector;
-    }
-
-    /**
-     * returns the error bag
-     *
-     *@return array
-    */
-    public function getErrorBag(): array
-    {
-        return $this->_error_bag;
-    }
-
-    /**
-     * returns error message for the given field, else returns null
-     *
-     *@return string|null
-    */
-    public function getError(string $field)
-    {
-        return Util::value($field, $this->_error_bag, null);
-    }
-
-    /**
-     * returns a boolean value indicating if the last validation call succeeded
-     *
-     *@return bool
-    */
-    public function succeeds(): bool
-    {
-        return $this->_succeeds;
-    }
-
-    /**
-     * returns a boolean value indicating if the last validation call failed
-     *
-     *@return bool
-    */
-    public function fails(): bool
-    {
-        return !$this->succeeds();
     }
 
     /**
