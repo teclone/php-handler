@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
 use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
-use Forensic\Handler\Exceptions\DataNotFoundException;
+use Forensic\Handler\Exceptions\KeyNotFoundException;
 use PHPUnit\Framework\Error\Warning;
 
 class HandlerTest extends TestCase
@@ -601,6 +601,55 @@ class HandlerTest extends TestCase
     }
 
     /**
+     * provides array of rules used in validating db checks
+    */
+    public function dbCheckResolutionTestDataProvider()
+    {
+        return [
+            'exists resolution set' => [
+                //rules
+                [
+                    'id' => [
+                        'check' => [
+                            'if' => 'exists',
+                            'entity' => 'products',
+                            'err' => 'product with id {this} already exists'
+                        ],
+                    ],
+                ],
+                //expected resolutions
+                [
+                    'id' => 'exist'
+                ],
+            ],
+            'does not/doesnt exists resolution set' => [
+                //rules
+                [
+                    'id' => [
+                        'check' => [
+                            'if' => 'doesNotExists',
+                            'entity' => 'products',
+                            'err' => 'product with id {this} does not exist'
+                        ],
+                    ],
+                    'email' => [
+                        'check' => [
+                            'if' => 'doesntExist',
+                            'entity' => 'users',
+                            'err' => 'user with email "{this}" not found'
+                        ],
+                    ],
+                ],
+                //expected resolutions
+                [
+                    'id' => 'notexist',
+                    'email' => 'notexist'
+                ]
+            ],
+        ];
+    }
+
+    /**
      * test that we can create an instance without any argument
     */
     public function testCreateInstanceWithNoArgument()
@@ -826,7 +875,7 @@ class HandlerTest extends TestCase
         $this->assertEquals('Harrison', $instance->getData('first-name'));
 
         //test that it throw exception if key is not known
-        $this->expectException(DataNotFoundException::class);
+        $this->expectException(KeyNotFoundException::class);
         $instance->getData('last-name');
     }
 
@@ -883,7 +932,7 @@ class HandlerTest extends TestCase
         $this->assertEquals('Harrison', $instance->first_name);
 
         //test that it throws error if key does not exist
-        $this->expectException(DataNotFoundException::class);
+        $this->expectException(KeyNotFoundException::class);
         $instance->middle_name;
     }
 
@@ -1007,5 +1056,38 @@ class HandlerTest extends TestCase
             'color number 4 is not a valid color',
             $instance->getError('colors')
         );
+    }
+
+    /**
+     * test that the getDBChecks returns array of db checks and throws error if given field
+     * key does not exists
+    */
+    public function testGetDBChecks()
+    {
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+        $instance->execute();
+
+        $this->assertTrue(is_array($instance->getDBChecks('first-name')));
+        $this->expectException(KeyNotFoundException::class);
+
+        $instance->getDBChecks('unknown');
+    }
+
+    /**
+     *@dataProvider dbCheckResolutionTestDataProvider
+    */
+    public function testDBCheckResolution(array $rules, array $expected)
+    {
+        $instance = new Handler([], $rules);
+        $instance->execute();
+
+        foreach($expected as $field => $value)
+        {
+            $db_checks = $instance->getDBChecks($field);
+            foreach($db_checks as $db_check)
+            {
+                $this->assertEquals($db_check['if'], $value);
+            }
+        }
     }
 }
