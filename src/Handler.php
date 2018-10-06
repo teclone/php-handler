@@ -10,7 +10,7 @@ use Forensic\Handler\Interfaces\ValidatorInterface;
 use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
 use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
-use Forensic\Handler\Exceptions\DataNotFoundException;
+use Forensic\Handler\Exceptions\KeyNotFoundException;
 use Forensic\Handler\Interfaces\DBCheckerInterface;
 
 ini_set('filter.default', 'full_special_chars');
@@ -548,16 +548,16 @@ class Handler
     */
     public function resolveDBChecks(array $db_check): array
     {
-        $check = Util::value('check', $db_check, null);
-        if (!is_null($check))
+        $if = Util::value('if', $db_check, null);
+        if (!is_null($if))
         {
-            $db_check['check'] = preg_replace([
+            $db_check['if'] = preg_replace([
                 '/(doesnot|doesnt)/',
                 '/exists/'
             ], [
                 'not',
                 'exist'
-            ], strtolower($check));
+            ], strtolower($if));
         }
         return $db_check;
     }
@@ -594,12 +594,16 @@ class Handler
     {
         foreach($this->_rules as $field => $rule)
         {
+            //get type
             $type = $this->resolveType(Util::value('type', $rule, 'text'));
 
-            $this->_db_checks[$field] = array_map(
-                [$this, 'resolveDBChecks'],
-                Util::arrayValue('checks', $rule)
-            );
+            $db_checks = [];
+            if (array_key_exists('check', $rule))
+                $db_checks = array($rule['check']);
+            else
+                $db_checks = Util::arrayValue('checks', $rule);
+
+            $this->_db_checks[$field] = array_map([$this, 'resolveDBChecks'], $db_checks);
             $this->_filters[$field] = Util::arrayValue('filters', $rule);
             $this->_rule_options[$field] = Util::arrayValue('options', $rule);
 
@@ -902,14 +906,14 @@ class Handler
     /**
      * returns the data for the given key if it exists, or null
      *@return string|null
-     *@throws DataNotFoundException
+     *@throws KeyNotFoundException
     */
     public function getData(string $key)
     {
         if (array_key_exists($key, $this->_data))
             return $this->_data[$key];
         else
-            throw new DataNotFoundException('No data set for the given key: ' . $key);
+            throw new KeyNotFoundException('field with given key: ' . $key . ' not set');
     }
 
     /**
@@ -923,6 +927,20 @@ class Handler
     }
 
     /**
+     * returns db checks array for the given field
+     *
+     *throws KeyNotFoundException
+     *@return array
+    */
+    public function getDBChecks(string $key)
+    {
+        if (array_key_exists($key, $this->_db_checks))
+            return $this->_db_checks[$key];
+        else
+            throw new KeyNotFoundException('field with given key: ' . $key . ' not set');
+    }
+
+    /**
      * overload the data properties to make them accessible directly on the instance
     */
     public function __get(string $name)
@@ -931,7 +949,7 @@ class Handler
         {
             return $this->getData($name);
         }
-        catch(DataNotFoundException $ex)
+        catch(KeyNotFoundException $ex)
         {
             // replace underscores with hyphen
             return $this->getData(preg_replace('/_/', '-', $name));
