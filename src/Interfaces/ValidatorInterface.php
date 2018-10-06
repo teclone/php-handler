@@ -3,19 +3,11 @@ declare(strict_types = 1);
 
 namespace Forensic\Handler\Interfaces;
 
-interface ValidatorInterface
+interface ValidatorInterface extends CommonInterface
 {
     public function setFileExtensionDetector(
         FileExtensionDetectorInterface $file_extension_detector
     );
-
-    public function setErrorBag(array &$error_bag);
-
-    public function getErrorBag(): array;
-
-    public function succeeds(): bool;
-
-    public function fails(): bool;
 
     /** text validation interface */
     public function validateText(bool $required, string $field, $value,
