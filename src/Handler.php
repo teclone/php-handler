@@ -11,6 +11,7 @@ use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
 use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
 use Forensic\Handler\Exceptions\DataNotFoundException;
+use Forensic\Handler\Interfaces\DBCheckerInterface;
 
 ini_set('filter.default', 'full_special_chars');
 ini_set('filter.default_flags', '0');
@@ -87,6 +88,17 @@ class Handler
     */
     private $_data = [];
 
+    protected function getDBChecksMethodMap()
+    {
+        return [
+            //check if exist method map
+            'ifexist' => 'checkIfExists',
+
+            //check if not exists method map
+            'ifnotexist' => 'checkIfNotExists',
+        ];
+    }
+
     /**
      * returns rule type to validation method map
      *
@@ -155,6 +167,64 @@ class Handler
     {
         $this->_data[$field] = $value;
         return $this;
+    }
+
+    /**
+     * runs the database checks
+     *
+     *@param bool $required - boolean indicating if field is required
+     *@param string $field - field being checked
+     *@param mixed $value - field value
+     *@param array $db_checks - the database check items
+     *@param int $index - the value index position
+     *@return bool
+    */
+    public function runDBChecks(bool $required, string $field, $value, array $db_checks,
+        int $index)
+    {
+        $db_checker = $this->_db_checker;
+        foreach ($db_checks as $db_check)
+        {
+            $check = Util::value('check', $db_check, '');
+            if($check === '')
+                continue;
+
+            $method = Util::value($check, $this->getDBChecksMethodMap(), 'null');
+            if ($method === 'null')
+            {
+                $warning = $check . ' is not a recognised db check rule';
+                trigger_error($warning, E_USER_WARNING);
+            }
+            else if ($db_checker->{$method}($required, $field, $value, $db_check, $index))
+            {
+                break;
+            }
+        }
+        return $this->succeeds();
+    }
+
+    /**
+     * runs database checks on the fields
+     *
+     *@param array $fields - the array of fields to validate
+     *@param bool $required - boolean value indicating if field is required
+    */
+    public function validateDBChecks(array $fields, bool $required)
+    {
+        foreach($fields as $field)
+        {
+            $db_checks = $this->_db_checks[$field];
+            if (count($db_checks) === 0)
+                continue;
+
+            //collect field values.
+            $values = Util::makeArray($field, $this->_data);
+            foreach($values as $index => $value)
+            {
+                if (!$this->runDBChecks($required, $field, $value, $db_checks, $index))
+                    break; //break on first db check error
+            }
+        }
     }
 
     /**
@@ -411,9 +481,7 @@ class Handler
         foreach($this->_required_fields as $field)
         {
             if ($this->fieldIsMissing($field))
-            {
                 $this->setError($field, $this->_hints[$field]);
-            }
         }
         return $this->succeeds();
     }
@@ -472,6 +540,29 @@ class Handler
     }
 
     /**
+     * resolve db checks 'check' rule, replace all doesnot, doesnt with not, replace exists
+     * with exist
+     *
+     *@param array $db_check - the database check detail
+     *@return array
+    */
+    public function resolveDBChecks(array $db_check): array
+    {
+        $check = Util::value('check', $db_check, null);
+        if (!is_null($check))
+        {
+            $db_check['check'] = preg_replace([
+                '/(doesnot|doesnt)/',
+                '/exists/'
+            ], [
+                'not',
+                'exist'
+            ], strtolower($check));
+        }
+        return $db_check;
+    }
+
+    /**
      * resolves the rule type
      *
      *@param string $type - the rule type
@@ -505,7 +596,10 @@ class Handler
         {
             $type = $this->resolveType(Util::value('type', $rule, 'text'));
 
-            $this->_db_checks[$field] = Util::arrayValue('checks', $rule);
+            $this->_db_checks[$field] = array_map(
+                [$this, 'resolveDBChecks'],
+                Util::arrayValue('checks', $rule)
+            );
             $this->_filters[$field] = Util::arrayValue('filters', $rule);
             $this->_rule_options[$field] = Util::arrayValue('options', $rule);
 
@@ -599,18 +693,23 @@ class Handler
     /**
      *@param string|array [$source] - the data source
      *@param array [$rules] - rules to be applied on data
-     *@param ValidatorInterface $validator - the validator, defaults to an internal validator
+     *@param ValidatorInterface [$validator] - the validator, defaults to an internal validator
+     *@param DBCheckerInfterface [$db_checker] - the db checker, defaults to an internal dbchecker
     */
     public function __construct($source = null, array $rules = null,
-        ValidatorInterface $validator = null)
+        ValidatorInterface $validator = null, DBCheckerInterface $db_checker = null)
     {
         if (is_null($validator))
             $validator = new Validator();
+
+        if (is_null($db_checker))
+            $db_checker = new DBChecker();
 
         $this->_executed = false;
         $this->setSource($source);
         $this->setRules($rules);
         $this->setValidator($validator);
+        $this->setDBChecker($db_checker);
     }
 
     /**
@@ -674,6 +773,20 @@ class Handler
     }
 
     /**
+     * sets the db checker
+     *
+     *@param DBCheckerInterface $db_checker - the db checker
+     *@return self
+    */
+    public function setDBChecker(DBCheckerInterface $db_checker)
+    {
+        $this->_db_checker = $db_checker;
+        $this->_db_checker->setErrorBag($this->_errors);
+
+        return $this;
+    }
+
+    /**
      * adds field to the existing source
      *
      *@param string $fieldname - the field name
@@ -726,6 +839,12 @@ class Handler
 
                 $this->validateFields($this->_required_fields, true);
                 $this->validateFields($this->_optional_fields, false);
+
+                if ($this->succeeds())
+                {
+                    $this->validateDBChecks($this->_required_fields, true);
+                    $this->validateDBChecks($this->_optional_fields, false);
+                }
             }
         }
 
