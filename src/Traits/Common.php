@@ -106,9 +106,17 @@ trait Common
      *
      *@return string|null
     */
-    public function getError(string $field)
+    public function getError(string $field = null)
     {
-        return Util::value($field, $this->_error_bag, null);
+        if (count($this->_error_bag) > 0)
+        {
+            if (!is_null($field) && array_key_exists($field, $this->_error_bag))
+                return $this->_error_bag[$field];
+
+            else if (is_null($field))
+                return current($this->_error_bag);
+        }
+        return null;
     }
 
     /**
