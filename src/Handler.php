@@ -205,7 +205,7 @@ class Handler
             //if there is no query, set the field key and the params key
             if (!array_key_exists('query', $db_check))
             {
-                $db_check['field'] = Util::value('field', $db_check, 'id'); //defaults to id
+                $db_check['field'] = Util::value('field', $db_check, is_int($value)? 'id' : $field); //defaults to id
                 $db_check['params'] = Util::arrayValue('params', $db_check, [$value]); //defaults to value
             }
 
