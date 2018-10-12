@@ -1,12 +1,12 @@
 <?php
 /**
- * The db checker module
+ * The db checker test module
 */
 declare(strict_types = 1);
-namespace Forensic\Handler;
+namespace Forensic\Handler\Test\Helpers;
 
-use Forensic\Handler\Traits\Common;
 use Forensic\Handler\Abstracts\DBCheckerAbstract;
+use Forensic\Handler\Util;
 
 class DBChecker extends DBCheckerAbstract
 {
