@@ -12,6 +12,7 @@ use Forensic\Handler\Exceptions\KeyNotFoundException;
 use PHPUnit\Framework\Error\Warning;
 use Forensic\Handler\Exceptions\MissingParameterException;
 use Forensic\Handler\Test\Helpers\DBChecker;
+use Forensic\Handler\Exceptions\DBCheckerNotFoundException;
 
 class HandlerTest extends TestCase
 {
@@ -1203,6 +1204,30 @@ class HandlerTest extends TestCase
         $instance = new Handler($data, $rules, null, new DBChecker());
         $this->expectException(MissingParameterException::class);
 
+        $instance->execute();
+    }
+
+    /**
+     * test that it throws exception if no db checker implementation is set and there is
+     * db check rule given
+    */
+    public function testDBCheckerNotFoundException()
+    {
+        $data = [
+            'email' => 'Harrisonifeanyichukwu@gmail.com'
+        ];
+        $rules = [
+            'email' => [
+                'type' => 'email',
+                'check' => [
+                    'if' => 'exists',
+                    'entity' => 'users',
+                ],
+            ],
+        ];
+
+        $this->expectException(DBCheckerNotFoundException::class);
+        $instance = new Handler($data, $rules);
         $instance->execute();
     }
 }
