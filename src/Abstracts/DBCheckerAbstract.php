@@ -46,16 +46,19 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
     protected function resolveParam($param, $value)
     {
         return preg_replace_callback('/\{\s*([^}]+)\s*\}/', function($matches) use ($value) {
+            $resolved = $matches[0];
+
             $capture = $matches[1];
             switch(strtolower($capture))
             {
                 case 'this':
-                    return $value;
+                    $resolved = $value;
+                    break;
                 case '_index':
-                    return $this->_index;
-                default:
-                    return $matches[0];
+                    $resolved = $this->_index;
+                    break;
             }
+            return $resolved;
         }, $param);
     }
 
@@ -122,11 +125,13 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
             $this->shouldCheck($required, $field, $value))
         {
             $result = $this->runExecution();
+            //@codeCoverageIgnoreStart
             if (count($result) > 0)
                 $this->setError(
                     Util::value('err', $options, 'the given {_this}: {this} does not exist'),
                     $value
                 );
+            //@codeCoverageIgnoreEnd
         }
         return $this->succeeds();
     }
@@ -140,6 +145,7 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
         if ($this->reset($field, $options, $index) &&
             $this->shouldCheck($required, $field, $value))
         {
+            $result = $this->runExecution();
             if (count($result) === 0)
                 $this->setError(
                     Util::value('err', $options, 'the given {_this}: {this} does not exist'),
