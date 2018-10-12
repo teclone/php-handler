@@ -10,6 +10,8 @@ use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
 use Forensic\Handler\Exceptions\KeyNotFoundException;
 use PHPUnit\Framework\Error\Warning;
+use Forensic\Handler\Exceptions\MissingParameterException;
+use Forensic\Handler\Test\Helpers\DBChecker;
 
 class HandlerTest extends TestCase
 {
@@ -607,12 +609,18 @@ class HandlerTest extends TestCase
     {
         return [
             'exists resolution set' => [
+                //data
+                [
+                    'id' => '2',
+                    'country' => ''
+                ],
                 //rules
                 [
                     'id' => [
+                        'type' => 'positiveInt',
                         'check' => [
                             'if' => 'exists',
-                            'entity' => 'products',
+                            'query' => 'SELECT 1 FROM products WHERE {_this} = {_index}',
                             'err' => 'product with id {this} already exists'
                         ],
                     ],
@@ -623,6 +631,12 @@ class HandlerTest extends TestCase
                 ],
             ],
             'does not/doesnt exists resolution set' => [
+                //data
+                [
+                    'id' => '2',
+                    'email' => 'Harrisonifeanyichukwu@gmail.com',
+                    'languages' => array('php', 'javascript')
+                ],
                 //rules
                 [
                     'id' => [
@@ -633,18 +647,80 @@ class HandlerTest extends TestCase
                         ],
                     ],
                     'email' => [
-                        'check' => [
-                            'if' => 'doesntExist',
-                            'entity' => 'users',
-                            'err' => 'user with email "{this}" not found'
+                        'type' => 'email',
+                        'checks' => [
+                            [
+                                'if' => 'doesntExist',
+                                'entity' => 'users',
+                                'err' => 'user with email "{this}" not found'
+                            ],
                         ],
                     ],
+                    'country' => [
+                        'required' => false,
+                        //if it is supplied, check if the country is in our database list
+                        'check' => [
+                            'if' => 'notExists',
+                            'err' => '{this} is not a recognised country',
+                            'query' => 'SELECT 1 FROM countries WHERE value = ?',
+                            'params' => array('{this}'),
+                        ],
+                    ],
+                    'languages' => [
+                        'required' => false,
+                        //if it is supplied, check if the language is in our database list
+                        'check' => [
+                            'if' => 'notExists',
+                            'err' => '{this} is not a recognised language',
+                            'query' => 'SELECT 1 FROM languages WHERE value = ?',
+                            'params' => array('{this}'),
+                        ]
+                    ]
                 ],
                 //expected resolutions
                 [
                     'id' => 'notexist',
                     'email' => 'notexist'
                 ]
+            ],
+        ];
+    }
+
+    /**
+     * provides data used in testing missing parameter db check exception
+    */
+    public function dbCheckMissingParameterExceptionTestDataProvider()
+    {
+        return [
+            'missing if parameter exception set' => [
+                //data
+                [
+                    'email' => 'Harrisonifeanyichukwu@gmail.com'
+                ],
+                //rule
+                [
+                    'email' => [
+                        'type' => 'email',
+                        'check' => [
+                            'entity' => 'Users'
+                        ],
+                    ],
+                ],
+            ],
+            'missing entity and query parameter exception set' => [
+                //data
+                [
+                    'email' => 'Harrisonifeanyichukwu@gmail.com'
+                ],
+                //rule
+                [
+                    'email' => [
+                        'type' => 'email',
+                        'check' => [
+                            'if' => 'exists',
+                        ],
+                    ],
+                ],
             ],
         ];
     }
@@ -1064,7 +1140,9 @@ class HandlerTest extends TestCase
     */
     public function testGetDBChecks()
     {
-        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules(), null,
+            new DBChecker()
+        );
         $instance->execute();
 
         $this->assertTrue(is_array($instance->getDBChecks('first-name')));
@@ -1076,9 +1154,9 @@ class HandlerTest extends TestCase
     /**
      *@dataProvider dbCheckResolutionTestDataProvider
     */
-    public function testDBCheckResolution(array $rules, array $expected)
+    public function testDBCheckResolution(array $data, array $rules, array $expected)
     {
-        $instance = new Handler([], $rules);
+        $instance = new Handler($data, $rules, null, new DBChecker());
         $instance->execute();
 
         foreach($expected as $field => $value)
@@ -1089,5 +1167,42 @@ class HandlerTest extends TestCase
                 $this->assertEquals($db_check['if'], $value);
             }
         }
+    }
+
+    /**
+     * test that a warning is issued if the db check parameter is not recognised
+    */
+    public function testUnknownDBCheckIfWarning()
+    {
+        $data = [
+            'email' => 'Harrisonifeanyichukwu@gmail.com'
+        ];
+        $rules = [
+            'email' => [
+                'type' => 'email',
+                'check' => [
+                    'if' => 'unknown',
+                    'entity' => 'Users'
+                ],
+            ],
+        ];
+        $instance = new Handler($data, $rules, null, new DBChecker());
+
+        $this->expectException(Warning::class);
+        $instance->execute();
+    }
+
+    /**
+     * test that missing parameter exception is thrown if a certain db check rule parameter is
+     * missing
+     *
+     *@dataProvider dbCheckMissingParameterExceptionTestDataProvider
+    */
+    public function testDBCheckMissingParameterException(array $data, array $rules)
+    {
+        $instance = new Handler($data, $rules, null, new DBChecker());
+        $this->expectException(MissingParameterException::class);
+
+        $instance->execute();
     }
 }
