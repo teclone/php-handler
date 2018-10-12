@@ -11,7 +11,9 @@ use Forensic\Handler\Exceptions\DataSourceNotRecognizedException;
 use Forensic\Handler\Exceptions\DataSourceNotSetException;
 use Forensic\Handler\Exceptions\RulesNotSetException;
 use Forensic\Handler\Exceptions\KeyNotFoundException;
-use Forensic\Handler\Interfaces\DBCheckerInterface;
+use Forensic\Handler\Exceptions\MissingParameterException;
+use Forensic\Handler\Abstracts\DBCheckerAbstract;
+use Forensic\Handler\Exceptions\DBCheckerNotFoundException;
 
 ini_set('filter.default', 'full_special_chars');
 ini_set('filter.default_flags', '0');
@@ -37,6 +39,11 @@ class Handler
      * the validator instance
     */
     private $_validator = null;
+
+    /**
+     * the db checker instance
+    */
+    private $_db_checker = null;
 
     /**
      * boolean value indicating if the execute method has been called
@@ -92,10 +99,10 @@ class Handler
     {
         return [
             //check if exist method map
-            'ifexist' => 'checkIfExists',
+            'exist' => 'checkIfExists',
 
             //check if not exists method map
-            'ifnotexist' => 'checkIfNotExists',
+            'notexist' => 'checkIfNotExists',
         ];
     }
 
@@ -178,26 +185,42 @@ class Handler
      *@param array $db_checks - the database check items
      *@param int $index - the value index position
      *@return bool
+     *@throws DB
     */
     public function runDBChecks(bool $required, string $field, $value, array $db_checks,
         int $index)
     {
         $db_checker = $this->_db_checker;
+        if (is_null($db_checker))
+            throw new DBCheckerNotFoundException('No db checker instance found');
+
         foreach ($db_checks as $db_check)
         {
-            $check = Util::value('check', $db_check, '');
-            if($check === '')
-                continue;
+            if (!array_key_exists('if', $db_check))
+                throw new MissingParameterException('db check "if" parameter expected: ' . $field);
 
-            $method = Util::value($check, $this->getDBChecksMethodMap(), 'null');
+            if (!array_key_exists('entity', $db_check) && !array_key_exists('query', $db_check))
+                throw new MissingParameterException('db check "entity" or "query" parameter expected: ' . $field);
+
+            //if there is no query, set the field key and the params key
+            if (!array_key_exists('query', $db_check))
+            {
+                $db_check['field'] = Util::value('field', $db_check, 'id'); //defaults to id
+                $db_check['params'] = Util::arrayValue('params', $db_check, [$value]); //defaults to value
+            }
+
+            $check_if = $db_check['if'];
+            $method = Util::value($check_if, $this->getDBChecksMethodMap(), 'null');
             if ($method === 'null')
             {
-                $warning = $check . ' is not a recognised db check rule';
+                $warning = $check_if . ' is not a recognised db check rule';
                 trigger_error($warning, E_USER_WARNING);
             }
-            else if ($db_checker->{$method}($required, $field, $value, $db_check, $index))
+            else
             {
-                break;
+                $db_checker->{$method}($required, $field, $value, $db_check, $index);
+                if($db_checker->fails())
+                    break;
             }
         }
         return $this->succeeds();
@@ -218,7 +241,7 @@ class Handler
                 continue;
 
             //collect field values.
-            $values = Util::makeArray($field, $this->_data);
+            $values = Util::makeArray($this->_data[$field]);
             foreach($values as $index => $value)
             {
                 if (!$this->runDBChecks($required, $field, $value, $db_checks, $index))
@@ -502,7 +525,7 @@ class Handler
             return $option;
         }
 
-        $value = preg_replace_callback('/\{\s*([^}]+)\s*\}/', function($matches) use ($field) {
+        return preg_replace_callback('/\{\s*([^}]+)\s*\}/', function($matches) use ($field) {
             $capture = $matches[1];
             switch(strtolower($capture))
             {
@@ -523,7 +546,6 @@ class Handler
                     return Util::value($capture, $this->_data, $matches[0]);
             }
         }, $option);
-        return $value;
     }
 
     /**
@@ -551,13 +573,17 @@ class Handler
         $if = Util::value('if', $db_check, null);
         if (!is_null($if))
         {
-            $db_check['if'] = preg_replace([
-                '/(doesnot|doesnt)/',
-                '/exists/'
-            ], [
-                'not',
-                'exist'
-            ], strtolower($if));
+            $db_check['if'] = preg_replace(
+                [
+                    '/(doesnot|doesnt)/',
+                    '/exists/'
+                ],
+                [
+                    'not',
+                    'exist'
+                ],
+                strtolower($if)
+            );
         }
         return $db_check;
     }
@@ -597,11 +623,9 @@ class Handler
             //get type
             $type = $this->resolveType(Util::value('type', $rule, 'text'));
 
-            $db_checks = [];
+            $db_checks = Util::arrayValue('checks', $rule);
             if (array_key_exists('check', $rule))
-                $db_checks = array($rule['check']);
-            else
-                $db_checks = Util::arrayValue('checks', $rule);
+                array_unshift($db_checks, $rule['check']);
 
             $this->_db_checks[$field] = array_map([$this, 'resolveDBChecks'], $db_checks);
             $this->_filters[$field] = Util::arrayValue('filters', $rule);
@@ -698,22 +722,21 @@ class Handler
      *@param string|array [$source] - the data source
      *@param array [$rules] - rules to be applied on data
      *@param ValidatorInterface [$validator] - the validator, defaults to an internal validator
-     *@param DBCheckerInfterface [$db_checker] - the db checker, defaults to an internal dbchecker
+     *@param DBCheckerAbstract [$db_checker] - the db checker, defaults to an internal dbchecker
     */
     public function __construct($source = null, array $rules = null,
-        ValidatorInterface $validator = null, DBCheckerInterface $db_checker = null)
+        ValidatorInterface $validator = null, DBCheckerAbstract $db_checker = null)
     {
         if (is_null($validator))
             $validator = new Validator();
-
-        if (is_null($db_checker))
-            $db_checker = new DBChecker();
 
         $this->_executed = false;
         $this->setSource($source);
         $this->setRules($rules);
         $this->setValidator($validator);
-        $this->setDBChecker($db_checker);
+
+        if (!is_null($db_checker))
+            $this->setDBChecker($db_checker);
     }
 
     /**
@@ -779,10 +802,10 @@ class Handler
     /**
      * sets the db checker
      *
-     *@param DBCheckerInterface $db_checker - the db checker
+     *@param DBCheckerAbstract $db_checker - the db checker
      *@return self
     */
-    public function setDBChecker(DBCheckerInterface $db_checker)
+    public function setDBChecker(DBCheckerAbstract $db_checker)
     {
         $this->_db_checker = $db_checker;
         $this->_db_checker->setErrorBag($this->_errors);
