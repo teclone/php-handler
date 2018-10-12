@@ -57,6 +57,10 @@ interface ValidatorInterface extends CommonInterface
     public function validateRange(bool $required, string $field, $value,
         array $options, int $index = 0): bool;
 
+    /** password validation interface */
+    public function validatePassword(bool $required, string $field, $value,
+        array $options, int $index = 0): bool;
+
     /** file validation interface */
     public function validateFile(bool $required, string $field, $value,
         array $options, int $index = 0, string &$new_value = null): bool;
