@@ -64,4 +64,24 @@ interface ValidatorInterface extends CommonInterface
     /** file validation interface */
     public function validateFile(bool $required, string $field, $value,
         array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** image validation interface */
+    public function validateImage(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** audio validation interface */
+    public function validateAudio(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** video validation interface */
+    public function validateVideo(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** media validation interface */
+    public function validateMedia(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** media validation interface */
+    public function validateDocument(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
 }
