@@ -685,6 +685,7 @@ class ValidatorTest extends TestCase
 
     /**
      * test that getError method returns the error string for a given field
+     * and that it returns the first error if no field is given
     */
     public function testGetError()
     {
@@ -697,8 +698,13 @@ class ValidatorTest extends TestCase
             'first name field is required',
             $this->_validator->getError('first_name')
         );
-
         $this->assertNull($this->_validator->getError('last_name'));
+        $error_bag['last_name'] = 'last name field is required';
+
+        $this->assertEquals(
+            'first name field is required',
+            $this->_validator->getError()
+        );
     }
 
     /**
