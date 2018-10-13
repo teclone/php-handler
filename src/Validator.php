@@ -792,6 +792,7 @@ class Validator implements ValidatorInterface
             }
 
             $move_to = Util::value('moveTo', $options, '');
+            $ext = Util::value('overrideMime', $options, $ext); // override file extension mime if given
             //move file to some other location if moveTo option is set
             if ($move_to !== '')
             {
