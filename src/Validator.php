@@ -88,33 +88,49 @@ class Validator implements ValidatorInterface
         switch($error_code)
         {
             case UPLOAD_ERR_INI_SIZE:
-                $error = 'file size exceeds upload_max_filesize ini directive';
+                $error = 'File size exceeds upload_max_filesize ini directive';
                 break;
 
             case UPLOAD_ERR_FORM_SIZE:
-                $error = 'file size exceeds max_file_size html form directive';
+                $error = 'File size exceeds max_file_size html form directive';
                 break;
 
             case UPLOAD_ERR_NO_FILE:
-                $error = 'no file upload found';
+                $error = 'No file upload found';
                 break;
 
             case UPLOAD_ERR_NO_TMP_DIR:
-                $error = 'no temp folder found for file storage';
+                $error = 'No temp folder found for file storage';
                 break;
 
             case UPLOAD_ERR_CANT_WRITE:
-                $error = 'permission denied while writing file to disk';
+                $error = 'Permission denied while writing file to disk';
                 break;
 
             case UPLOAD_ERR_EXTENSION:
-                $error = 'some loaded extensions aborted file processing';
+                $error = 'Some loaded extensions aborted file processing';
                 break;
             default:
-                $error = 'unknown file upload error';
+                $error = 'Unknown file upload error';
                 break;
         }
         return $this->setError($error, $value);
+    }
+
+    /**
+     * validate match with
+     *
+     *@return bool
+    */
+    public function matchWith($value, array $options, string $prefix = '{_this}'): bool
+    {
+        if (array_key_exists('matchWith', $options) && $value !== $options['matchWith'])
+            $this->setError(
+                Util::value('matchWithErr', $options, $prefix . ' did not match'),
+                $value
+            );
+
+        return $this->succeeds();
     }
 
     /**
@@ -261,10 +277,12 @@ class Validator implements ValidatorInterface
      *@param int|float|Datetime $actual - the actual value
      *@param array $options, int $index = 0 - the field rules
      *@param callback [$callback=null] - the callback method
+     *@param string [$sufix] - a string sufix to use
+     *@param string [$prefix] - a string prefix to use
      *@return bool
     */
     protected function checkLimitingRules($value, $actual, callable $callback = null,
-        string $suffix = ''): bool
+        string $sufix = '', string $prefix = '{_this}'): bool
     {
         $options = $this->_options;
         //check the min limit
@@ -274,7 +292,7 @@ class Validator implements ValidatorInterface
             $min = $this->runCallback($min, $callback);
             if($actual < $min)
             {
-                $default_err = '{_this} should not be less than ' . $min . $suffix;
+                $default_err = $prefix . ' should not be less than ' . $min . $sufix;
                 return $this->setError(Util::value('minErr',$options, $default_err), $value);
             }
         }
@@ -286,7 +304,7 @@ class Validator implements ValidatorInterface
             $max = $this->runCallback($max, $callback);
             if($actual > $max)
             {
-                $default_err = '{_this} should not be greater than ' . $max . $suffix;
+                $default_err = $prefix . ' should not be greater than ' . $max . $sufix;
                 return $this->setError(Util::value('maxErr',$options, $default_err), $value);
             }
         }
@@ -298,7 +316,7 @@ class Validator implements ValidatorInterface
             $gt = $this->runCallback($gt, $callback);
             if($actual <= $gt)
             {
-                $default_err = '{_this} should be greater than ' . $gt . $suffix;
+                $default_err = $prefix . ' should be greater than ' . $gt . $sufix;
                 return $this->setError(Util::value('gtErr',$options, $default_err), $value);
             }
         }
@@ -310,7 +328,7 @@ class Validator implements ValidatorInterface
             $lt = $this->runCallback($lt, $callback);
             if($actual >= $lt)
             {
-                $default_err = '{_this} should be less than ' . $lt . $suffix;
+                $default_err = $prefix . ' should be less than ' . $lt . $sufix;
                 return $this->setError(Util::value('ltErr',$options, $default_err), $value);
             }
         }
@@ -382,7 +400,8 @@ class Validator implements ValidatorInterface
             $this->checkLimitingRules($value, $len, null, ' characters');
 
             //check for formatting rules
-            $this->checkRegexRules($value, $options);
+            if ($this->succeeds())
+                $this->checkRegexRules($value, $options);
         }
         return $this->succeeds();
     }
@@ -669,6 +688,47 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * validate password
+    */
+    public function validatePassword(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
+    {
+        $options['min'] = Util::value('min', $options, 8);
+        $options['max'] = Util::value('max', $options, 28);
+
+        $options['regexAll'] = Util::arrayValue('regexAll', $options, [
+            //password should contain at least two alphabets
+            [
+                'test' => '/[a-z].*[a-z]/i',
+                'err' => 'Password must contain at least two letter alphabets'
+            ],
+            //password should contain at least two non letter alphabets
+            [
+                'test' => '/[^a-z].*[^a-z]/i',
+                'err' => 'Password must contain at least two non letter alphabets'
+            ]
+        ]);
+
+        if ($this->reset($field, $options, $index) &&
+            $this->shouldValidate($required, $field, $value))
+        {
+            //validate the limiting rules
+            $len = strlen($value);
+            $this->checkLimitingRules($value, $len, null, ' characters', 'Password');
+
+            //check for regex rules
+            if ($this->succeeds())
+                $this->checkRegexRules($value, $options);
+
+            //check for match with rule
+            if ($this->succeeds())
+                $this->matchWith($value, $options, 'Passwords');
+        }
+
+        return $this->succeeds();
+    }
+
+    /**
      * validates file upload
      *
      *@throws DirectoryNotFoundException
@@ -711,7 +771,7 @@ class Validator implements ValidatorInterface
                 */
                 $ext = $this->_file_extension_detector->resolveExtension($matches[1]);
                 if (!in_array($ext, $exts))
-                    return $this->setError('file extension spoofing detected', $value);
+                    return $this->setError('File extension spoofing detected', $value);
             }
             else
             {
@@ -724,10 +784,12 @@ class Validator implements ValidatorInterface
             );
 
             if(count($mimes) > 0 && !in_array($ext, $mimes))
+            {
                 return $this->setError(
-                    Util::value('mimeErr', $options, '".' . $ext . '" file extension is not accepted'),
+                    Util::value('mimeErr', $options, '".' . $ext . '" file extension not accepted'),
                     $value
                 );
+            }
 
             $move_to = Util::value('moveTo', $options, '');
             //move file to some other location if moveTo option is set
@@ -747,12 +809,12 @@ class Validator implements ValidatorInterface
                     if(rename($temp_filename, $move_to))
                         $new_value = $filename;
                     else
-                        throw new Exception('error occured while moving uploaded file');
+                        throw new Exception('Error occured while moving uploaded file');
                 }
                 catch(Exception $ex)
                 {
                     throw new FileMoveException(
-                        Util::value('moveErr', $options, 'error occured while moving uploaded file'),
+                        Util::value('moveErr', $options, 'Error occured while moving uploaded file'),
                         0,
                         $ex
                     );
@@ -760,5 +822,90 @@ class Validator implements ValidatorInterface
             }
         }
         return $this->succeeds();
+    }
+
+    /**
+     * validates image file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateImage(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getImageMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
+    }
+
+    /**
+     * validates audio file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateAudio(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getAudioMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
+    }
+
+    /**
+     * validates video file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateVideo(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getVideoMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
+    }
+
+    /**
+     * validates media file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateMedia(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getMediaMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
+    }
+
+    /**
+     * validates document file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateDocument(bool $required, string $field, $value,
+    array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getDocumentMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
     }
 }
