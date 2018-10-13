@@ -38,6 +38,50 @@ class FileExtensionDetector implements FileExtensionDetectorInterface
     ];
 
     /**
+     * returns array of image file extensions
+    */
+    public function getImageMimes(): array
+    {
+        return array('gif', 'jpg', 'png');
+    }
+
+    /**
+     * returns array of audio file extensions
+    */
+    public function getAudioMimes(): array
+    {
+        return array('mp3');
+    }
+
+    /**
+     * returns array of video file extensions
+    */
+    public function getVideoMimes(): array
+    {
+        return array('movi', 'mp4', 'ogg', 'webm');
+    }
+
+    /**
+     * returns array of media file extensions
+    */
+    public function getMediaMimes(): array
+    {
+        return array_merge(
+            $this->getImageMimes(),
+            $this->getAudioMimes(),
+            $this->getVideoMimes()
+        );
+    }
+
+    /**
+     * returns array of document file extensions
+    */
+    public function getDocumentMimes(): array
+    {
+        return array('pdf', 'doc', 'docx');
+    }
+
+    /**
      * resolves a given extension to something compatible with its internal extension
      *
      *@param string $ext - the extension
