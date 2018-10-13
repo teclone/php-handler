@@ -91,4 +91,56 @@ class FileExtensionDetectorTest extends TestCase
         $this->expectException(FileReadException::class);
         $this->_file_ext_detector->detect('/root/');
     }
+
+    /**
+     * test that the getDocumentMimes works as expected
+    */
+    public function testGetDocumentMimesMethod()
+    {
+        $mimes = $this->_file_ext_detector->getDocumentMimes();
+        $this->assertTrue(is_array($mimes));
+        $this->assertArraySubset(array('pdf', 'doc', 'docx'), $mimes);
+    }
+
+    /**
+     * test that the getImageMimes works as expected
+    */
+    public function testGetImageMimesMethod()
+    {
+        $mimes = $this->_file_ext_detector->getImageMimes();
+        $this->assertTrue(is_array($mimes));
+        $this->assertArraySubset(array('gif', 'jpg', 'png'), $mimes);
+    }
+
+    /**
+     * test that the getAudioMimes works as expected
+    */
+    public function testGetAudioMimesMethod()
+    {
+        $mimes = $this->_file_ext_detector->getAudioMimes();
+        $this->assertTrue(is_array($mimes));
+        $this->assertArraySubset(array('mp3'), $mimes);
+    }
+
+    /**
+     * test that the getVideoMimes works as expected
+    */
+    public function testGetVideoMimesMethod()
+    {
+        $mimes = $this->_file_ext_detector->getVideoMimes();
+        $this->assertTrue(is_array($mimes));
+        $this->assertArraySubset(array('movi', 'mp4', 'ogg', 'webm'), $mimes);
+    }
+
+    /**
+     * test that the getMediaMimes works as expected
+    */
+    public function testGetMediaMimesMethod()
+    {
+        $mimes = $this->_file_ext_detector->getMediaMimes();
+        $this->assertTrue(is_array($mimes));
+        $this->assertArraySubset(array(
+            'gif', 'jpg', 'png', 'mp3', 'movi', 'mp4', 'ogg', 'webm'
+        ), $mimes);
+    }
 }
