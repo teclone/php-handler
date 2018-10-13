@@ -146,7 +146,25 @@ class Handler
             'range' => 'validateRange',
 
             //file validation
-            'file' => 'validateFile'
+            'file' => 'validateFile',
+
+            //image file validation
+            'image' => 'validateImage',
+
+            //audio file validation
+            'audio' => 'validateAudio',
+
+            //video file validation
+            'video' => 'validateVideo',
+
+            //media file validation
+            'media' => 'validateMedia',
+
+            //document file validation
+            'document' => 'validateDocument',
+
+            //password validation
+            'password' => 'validatePassword'
         ];
     }
 
