@@ -225,6 +225,46 @@ class ValidatorTest extends TestCase
                     '"d" is not an acceptable choice'
                 ]
             ],
+
+            //password validation
+            'correct password validation' => [
+                'validatePassword',
+                'password1',
+                ['random_21', 'random21'],
+                [],
+            ],
+            'correct password validation with matchWith option' => [
+                'validatePassword',
+                'password1',
+                ['random_21'],
+                [
+                    'matchWith' => 'random_21'
+                ],
+            ],
+            'incorrect password validation' => [
+                'validatePassword',
+                'password1',
+                ['random', '21222222', 'randomnumber'],
+                [
+
+                ],
+                [
+                    'Password should not be less than 8 characters',
+                    'Password must contain at least two letter alphabets',
+                    'Password must contain at least two non letter alphabets'
+                ]
+            ],
+            'incorrect match with password validation' => [
+                'validatePassword',
+                'password1',
+                ['random_2'],
+                [
+                    'matchWith' => 'random_21'
+                ],
+                [
+                    'Passwords did not match',
+                ]
+            ],
         ];
     }
 
@@ -461,7 +501,7 @@ class ValidatorTest extends TestCase
                     'regexAny' => [
                         //test that the website url starts with https or ftp
                         'tests' => ['/^https/', '/^ftp/'],
-                        'err' => 'website url should start with https or ftp protocols',
+                        'err' => 'Website url should start with https or ftp protocols',
                     ],
                 ],
             ],
@@ -474,12 +514,12 @@ class ValidatorTest extends TestCase
                     'regexAny' => [
                         //test that the website url starts with https or ftp
                         'tests' => ['/^https/', '/^ftp/'],
-                        'err' => 'website url should start with https or ftp protocols',
+                        'err' => 'Website url should start with https or ftp protocols',
                     ],
                 ],
 
                 [
-                    'website url should start with https or ftp protocols',
+                    'Website url should start with https or ftp protocols',
                 ],
             ],
         ];
@@ -547,37 +587,37 @@ class ValidatorTest extends TestCase
         return [
             'ini size error test' => [
                 UPLOAD_ERR_INI_SIZE,
-                'file size exceeds upload_max_filesize ini directive',
+                'File size exceeds upload_max_filesize ini directive',
             ],
 
             'form size error test' => [
                 UPLOAD_ERR_FORM_SIZE,
-                'file size exceeds max_file_size html form directive',
+                'File size exceeds max_file_size html form directive',
             ],
 
             'no file upload error test' => [
                 UPLOAD_ERR_NO_FILE,
-                'no file upload found',
+                'No file upload found',
             ],
 
             'no temp folder error test' => [
                 UPLOAD_ERR_NO_TMP_DIR,
-                'no temp folder found for file storage',
+                'No temp folder found for file storage',
             ],
 
             'write permission error test' => [
                 UPLOAD_ERR_CANT_WRITE,
-                'permission denied while writing file to disk',
+                'Permission denied while writing file to disk',
             ],
 
             'php extension error test' => [
                 UPLOAD_ERR_EXTENSION,
-                'some loaded extensions aborted file processing',
+                'Some loaded extensions aborted file processing',
             ],
 
             'unknown error test' => [
                 41,
-                'unknown file upload error',
+                'Unknown file upload error',
             ]
         ];
     }
@@ -592,10 +632,10 @@ class ValidatorTest extends TestCase
             'min error test' => [
                 [
                     'min' => $size + 1,
-                    'minErr' => 'picture should be at least ' . ($size + 1) . ' bytes',
+                    'minErr' => 'Picture should be at least ' . ($size + 1) . ' bytes',
                 ],
                 true,
-                'picture should be at least ' . ($size + 1) . ' bytes',
+                'Picture should be at least ' . ($size + 1) . ' bytes',
             ],
             'min success test' => [
                 [
@@ -618,7 +658,7 @@ class ValidatorTest extends TestCase
                 'image/png',
                 [],
                 true,
-                'file extension spoofing detected',
+                'File extension spoofing detected',
             ],
             'txt extension test' => [
                 'file2.txt',
@@ -648,7 +688,53 @@ class ValidatorTest extends TestCase
                     'mimes' => array('jpeg', 'png', 'gif')
                 ],
                 true,
-                '".txt" file extension is not accepted',
+                '".txt" file extension not accepted',
+            ],
+        ];
+    }
+
+    public function fileVarietyMethodsTestDataProvider()
+    {
+        return [
+            //image file validation method
+            'image file validation set 1' => [
+                'validateImage',
+                'file1.jpg',
+                'image/jpeg',
+            ],
+
+            //audio file validation method
+            'audio file validation set 1' => [
+                'validateAudio',
+                'file1.jpg',
+                'image/jpeg',
+                true,
+                '".jpg" file extension not accepted'
+            ],
+
+            //video file validation method
+            'video file validation set 1' => [
+                'validateVideo',
+                'file1.jpg',
+                'image/jpeg',
+                true,
+                '".jpg" file extension not accepted'
+            ],
+
+            //media file validation method
+            'media file validation set 1' => [
+                'validateMedia',
+                'file1.jpg',
+                'image/jpeg',
+            ],
+
+            //document file validation method
+            'document file validation set 1' => [
+                'validateDocument',
+                'file2.txt',
+                'text/plain',
+                true,
+                '".txt" file extension not accepted'
             ],
         ];
     }
@@ -674,11 +760,11 @@ class ValidatorTest extends TestCase
     public function testErrorBag()
     {
         $error_bag = [
-            'first_name' => 'first name field is required',
+            'first_name' => 'First name field is required',
         ];
 
         $this->_validator->setErrorBag($error_bag);
-        $error_bag['last_name'] = 'last name field is required';
+        $error_bag['last_name'] = 'Last name field is required';
 
         $this->assertEquals($error_bag, $this->_validator->getErrorBag());
     }
@@ -690,19 +776,19 @@ class ValidatorTest extends TestCase
     public function testGetError()
     {
         $error_bag = [
-            'first_name' => 'first name field is required',
+            'first_name' => 'First name field is required',
         ];
 
         $this->_validator->setErrorBag($error_bag);
         $this->assertEquals(
-            'first name field is required',
+            'First name field is required',
             $this->_validator->getError('first_name')
         );
         $this->assertNull($this->_validator->getError('last_name'));
-        $error_bag['last_name'] = 'last name field is required';
+        $error_bag['last_name'] = 'Last name field is required';
 
         $this->assertEquals(
-            'first name field is required',
+            'First name field is required',
             $this->_validator->getError()
         );
     }
@@ -940,5 +1026,25 @@ class ValidatorTest extends TestCase
         $this->assertFileExists('tests/Helpers/' . $new_value);
 
         rename('tests/Helpers/' . $new_value, 'tests/Helpers/file1.jpg');
+    }
+
+    /**
+     *@dataProvider fileVarietyMethodsTestDataProvider
+    */
+    public function testFileVarietyMethods(string $method, string $filename,
+        string $mime, bool $is_error = false, $err = '')
+    {
+        $_FILES['file'] = getTestFileDetails($filename, $mime);
+
+        $this->_validator->{$method}(true, 'file', $filename, [], 0, $new_value);
+        if ($is_error)
+        {
+            $this->assertFalse($this->_validator->succeeds());
+            $this->assertEquals($err, $this->_validator->getError('file'));
+        }
+        else
+        {
+            $this->assertTrue($this->_validator->succeeds());
+        }
     }
 }
