@@ -124,7 +124,7 @@ class Validator implements ValidatorInterface
     */
     public function matchWith($value, array $options, string $prefix = '{_this}'): bool
     {
-        if (array_key_exists('matchWith', $options) && $value !== $options['matchWith'])
+        if (array_key_exists('matchWith', $options) && $value != $options['matchWith'])
             $this->setError(
                 Util::value('matchWithErr', $options, $prefix . ' did not match'),
                 $value
@@ -337,27 +337,43 @@ class Validator implements ValidatorInterface
     }
 
     /**
-     * returns boolean indicating if validation should proceed
+     * runs post validation
+    */
+    protected function postValidate($value, array $options)
+    {
+        if ($this->succeeds())
+            $this->matchWith($value, $options);
+
+        return $this->succeeds();
+    }
+
+    /**
+     * resets the validator, and checks if the validation should proceed
      *
-     *@param bool $required - boolean indicating if field is required
-     *@param string $field - the field to validate
-     *@param mixed $value - the field value
      *@return bool
     */
-    protected function shouldValidate(bool $required, string $field, &$value)
+    protected function setup(bool $required, string $field, &$value,
+        array $options, int $index = 0)
     {
-        if (!$required && (is_null($value) || $value === ''))
-            return false;
+        $this->reset($field, $options, $index);
 
-        if (is_null($value) || $value === '')
+        if (!$required && (is_null($value) || $value === ''))
+        {
+            $this->shouldProceed(false);
+        }
+        else if (is_null($value) || $value === '')
         {
             $this->setError('{_this} is required', $value);
-            return false;
+            $this->shouldProceed(false);
+        }
+        else
+        {
+            //cast to string
+            $value = strval($value);
+            $this->shouldProceed(true);
         }
 
-        //cast to string
-        $value = strval($value);
-        return true;
+        return $this->shouldProceed();
     }
 
     /**
@@ -392,8 +408,7 @@ class Validator implements ValidatorInterface
     public function validateText(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             //validate the limiting rules
             $len = strlen($value);
@@ -403,7 +418,7 @@ class Validator implements ValidatorInterface
             if ($this->succeeds())
                 $this->checkRegexRules($value, $options);
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -415,8 +430,7 @@ class Validator implements ValidatorInterface
     public function validateDate(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             //check date format
             $format = '/^([0-9]{4})([-._:|\/\s])?([0-9]{1,2})\2?([0-9]{1,2})$/';
@@ -455,7 +469,7 @@ class Validator implements ValidatorInterface
                     return $value instanceof DateTime? $value : new DateTime($value);
                 });
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -467,8 +481,7 @@ class Validator implements ValidatorInterface
     public function validateInteger(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[-+]?\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value));
@@ -478,7 +491,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -490,8 +503,7 @@ class Validator implements ValidatorInterface
     public function validatePInteger(bool $required, string $field, $value, array $options,
         int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[+]?\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value)); //check limiting rules
@@ -501,7 +513,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -513,8 +525,7 @@ class Validator implements ValidatorInterface
     public function validateNInteger(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^-\d+$/', $value))
                 $this->checkLimitingRules($value, intval($value)); //check limiting rules
@@ -524,7 +535,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -536,8 +547,7 @@ class Validator implements ValidatorInterface
     public function validateFloat(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^(?:[-+]?\d+(\.\d+)?|\.\d+)$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -547,7 +557,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -559,8 +569,7 @@ class Validator implements ValidatorInterface
     public function validatePFloat(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^(?:\+?\d+(\.\d+)?|\.\d+)$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -570,7 +579,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -582,8 +591,7 @@ class Validator implements ValidatorInterface
     public function validateNFloat(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[-]\d+(\.\d+)?$/', $value))
                 $this->checkLimitingRules($value, floatval($value)); //check limiting rules
@@ -593,7 +601,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -604,8 +612,7 @@ class Validator implements ValidatorInterface
     public function validateEmail(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             if (filter_var($value, FILTER_VALIDATE_EMAIL))
                 $this->checkRegexRules($value, $options);
@@ -615,7 +622,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -627,8 +634,7 @@ class Validator implements ValidatorInterface
     public function validateURL(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             $format = '/^'
                 . '(?:(?:(https|http|ftp):\/\/))?' //match optional scheme
@@ -646,7 +652,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -659,8 +665,7 @@ class Validator implements ValidatorInterface
         array $options, int $index = 0): bool
     {
         $original_value = $value;
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             $choices = Util::arrayValue('choices', $options);
             if (!in_array($value, $choices) && !in_array($original_value, $choices))
@@ -669,7 +674,7 @@ class Validator implements ValidatorInterface
                     $value
                 );
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -709,8 +714,7 @@ class Validator implements ValidatorInterface
             ]
         ]);
 
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             //validate the limiting rules
             $len = strlen($value);
@@ -725,7 +729,7 @@ class Validator implements ValidatorInterface
                 $this->matchWith($value, $options, 'Passwords');
         }
 
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**
@@ -737,20 +741,19 @@ class Validator implements ValidatorInterface
     public function validateFile(bool $required, string $field, $value,
     array $options, int $index = 0, string &$new_value = null): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldValidate($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             $files = $_FILES[$field];
 
             //validate file upload error
             $error_code = Util::makeArray($files['error'])[$index];
             if (!$this->checkFileUploadError($error_code, $value))
-                return $this->succeeds();
+                return $this->postValidate($value, $options);
 
             //validate limiting rules
             $file_size = Util::makeArray($files['size'])[$index];
             if (!$this->checkLimitingRules($value, $file_size))
-                return $this->succeeds();
+                return $this->postValidate($value, $options);
 
             //test file extension
             $magic_byte = '';
@@ -822,7 +825,7 @@ class Validator implements ValidatorInterface
                 }
             }
         }
-        return $this->succeeds();
+        return $this->postValidate($value, $options);
     }
 
     /**

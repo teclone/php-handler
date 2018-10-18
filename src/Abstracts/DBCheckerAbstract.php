@@ -77,33 +77,38 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
     }
 
     /**
-     * returns boolean indicating if checked should proceed
+     * resets the db checker, and checks if the check call should proceed
      *
-     *@param bool $required - boolean indicating if field is required
-     *@param string $field - the field to check
-     *@param mixed $value - the field value
      *@return bool
     */
-    protected function shouldCheck(bool $required, string $field, $value)
+    protected function setup(bool $required, string $field, &$value,
+        array $options, int $index = 0)
     {
-        //if the value is null, or empty and the field is not required, return false
+        $this->reset($field, $options, $index);
+
         if (!$required && (is_null($value) || $value === ''))
-            return false;
+        {
+            $this->shouldProceed(false);
+        }
+        else
+        {
+            //resolve the params in the options array
+            $this->_options['params'] = $this->resolveParams(
+                Util::arrayValue('params', $this->_options),
+                $value
+            );
+            //resolve the query in the options array
+            $this->_options['query'] = $this->resolveParam(
+                Util::value('query', $this->_options, ''),
+                $value
+            );
+            //build the query if query is empty string
+            $this->_query = $this->buildQuery($this->_options);
 
-        //resolve the params in the options array
-        $this->_options['params'] = $this->resolveParams(
-            Util::arrayValue('params', $this->_options),
-            $value
-        );
-        //resolve the query in the options array
-        $this->_options['query'] = $this->resolveParam(
-            Util::value('query', $this->_options, ''),
-            $value
-        );
-        //build the query if query is empty string
-        $this->_query = $this->buildQuery($this->_options);
+            $this->shouldProceed(true);
+        }
 
-        return true;
+        return $this->shouldProceed();
     }
 
     /**
@@ -121,8 +126,7 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
     public function checkIfExists(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldCheck($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             $result = $this->runExecution();
             //@codeCoverageIgnoreStart
@@ -142,8 +146,7 @@ abstract class DBCheckerAbstract implements DBCheckerInterface
     public function checkIfNotExists(bool $required, string $field, $value,
         array $options, int $index = 0): bool
     {
-        if ($this->reset($field, $options, $index) &&
-            $this->shouldCheck($required, $field, $value))
+        if ($this->setup($required, $field, $value, $options, $index))
         {
             $result = $this->runExecution();
             if (count($result) === 0)
