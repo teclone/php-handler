@@ -33,6 +33,27 @@ trait Common
     private $_index = null;
 
     /**
+     * boolean value indicating if the validation should proceed
+    */
+    private $_should_proceed = true;
+
+    /**
+     * sets or returns the proceed status
+     *
+     *@param bool [$should_proceed] - sets the should proceed status if given. It returns
+     * the proceed status at the end
+     *
+     *@return boolean
+    */
+    protected function shouldProceed(bool $should_proceed = null)
+    {
+        if (!is_null($should_proceed))
+            $this->_should_proceed = $should_proceed;
+
+        return $this->_should_proceed;
+    }
+
+    /**
      * sets error error message
      *
      *@param string $err - the error message
@@ -76,6 +97,7 @@ trait Common
         $this->_field = $field;
         $this->_options = $options;
         $this->_index = $index;
+        $this->_should_proceed = true;
 
         $this->_succeeds = true;
         return true;
