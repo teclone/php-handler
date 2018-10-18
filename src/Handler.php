@@ -550,13 +550,11 @@ class Handler
                 case '_this':
                     return $field;
 
-                case 'current_timestamp':
                 case 'current_datetime':
                 case 'current_date':
                     return '' . new DateTime();
 
-                case 'now':
-                case 'timestamp':
+                case 'current_timestamp':
                 case 'current_time':
                     return time();
 
