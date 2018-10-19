@@ -14,6 +14,8 @@ use Forensic\Handler\Exceptions\KeyNotFoundException;
 use Forensic\Handler\Exceptions\MissingParameterException;
 use Forensic\Handler\Abstracts\DBCheckerAbstract;
 use Forensic\Handler\Exceptions\DBCheckerNotFoundException;
+use Forensic\Handler\Exceptions\InvalidArgumentException;
+use Forensic\Handler\Exceptions\StateException;
 
 ini_set('filter.default', 'full_special_chars');
 ini_set('filter.default_flags', '0');
@@ -898,16 +900,21 @@ class Handler
      * returns boolean value indicating if the handling went successful
      *
      *@return bool
+     *@throws StateException - throws error if the execute method has not been called
     */
     public function succeeds()
     {
-        return $this->_executed && count($this->_errors) === 0;
+        if (!$this->_executed)
+            throw new StateException('Cant check state because execute method has not been called');
+
+        return count($this->_errors) === 0;
     }
 
     /**
      * returns boolean value indicating if the handling failed
      *
      *@return bool
+     *@throws StateException - throws error if the execute method has not been called
     */
     public function fails()
     {
