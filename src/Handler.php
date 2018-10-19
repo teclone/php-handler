@@ -97,6 +97,21 @@ class Handler
     */
     private $_data = [];
 
+    /**
+     * array of fields to skip while mapping data to model
+    */
+    private $_model_skip_fields = [];
+
+    /**
+     * array of field new names to use when mapping field data to model
+    */
+    private $_model_rename_fields = [];
+
+    /**
+     * boolean value indicating if model field names should be camelized
+    */
+    private $_model_camelize_fields = false;
+
     protected function getDBChecksMethodMap()
     {
         return [
@@ -1000,5 +1015,117 @@ class Handler
             // replace underscores with hyphen
             return $this->getData(preg_replace('/_/', '-', $name));
         }
+    }
+
+    /**
+     * sets boolean value indicating if field names should be camelized based on the presence
+     * of underscore or dash characters
+     *
+     *@return bool
+    */
+    public function modelCamelizeFields(bool $status = null)
+    {
+        if (!is_null($status))
+            $this->_model_camelize_fields = $status;
+
+        return $this->_model_camelize_fields;
+    }
+
+    /**
+     * resolve model field name
+     *
+     *@param string $field_name - the field name
+     *@return string
+    */
+    public function resolveModelFieldName(string $field_name)
+    {
+        if ($this->modelCamelizeFields())
+        {
+            $parts = preg_split('/[-_]/', $field_name);
+
+            return implode('', array_map(function($part, $index) {
+                return $index === 0? $part : ucfirst($part);
+            }, $parts, array_keys($parts)));
+        }
+
+        return preg_replace('/[-]/', '_', $field_name);
+    }
+
+    /**
+     * defines a field that should be skipped while mapping to a model
+     *@param string $field
+     *@return self
+    */
+    public function modelSkipField(string $field)
+    {
+        if (!in_array($field, $this->_model_skip_fields))
+            array_push($this->_model_skip_fields, $field);
+
+        return $this;
+    }
+
+    /**
+     * defines array of fields that should be skipped while mapping to a model
+     *
+     *@param array $fields - array of fields
+     *@return self
+    */
+    public function modelSkipFields(array $fields)
+    {
+        arrray_walk($fields, [$this, 'modelSkipField']);
+        return $this;
+    }
+
+    /**
+     * defines the new name to use when mapping field data to a model
+     *@param string $field
+     *@param string $new_name
+     *@return self
+    */
+    public function modelRenameField(string $field, string $new_name)
+    {
+        $this->_model_rename_fields[$field] = $new_name;
+        return $this;
+    }
+
+    /**
+     * defines the new names to use when mapping field data to a model
+     *@param array $new_names
+     *@return self
+    */
+    public function modelRenameFields(array $new_names)
+    {
+        foreach($new_names as $field => $new_name)
+            $this->modelRenameField($field, $new_name);
+
+        return $this;
+    }
+
+    /**
+     * copies the data to the given model instance
+     *
+     *@param Object $model - the model object
+     *@return Object  returns the model
+    */
+    public function mapDataToModel($model)
+    {
+        if (!$this->succeeds())
+            throw new StateException('cannot map data to model in failure state');
+
+        if (!is_object($model))
+            throw new InvalidArgumentException($model . ' is not a model object');
+
+        foreach($this->_data as $field => $value)
+        {
+            //if the field is excluded from the model, skip
+            if (in_array($field, $this->_model_skip_fields))
+                continue;
+
+            $model_field_name = Util::value($field, $this->_model_rename_fields, $field);
+
+            $model->{$this->resolveModelFieldName($model_field_name)} = $this->getData($field);
+        }
+
+        return $model;
     }
 }
