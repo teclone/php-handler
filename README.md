@@ -72,7 +72,10 @@ class AuthHandler extends BaseHandler
         */
         $query = 'SELECT id FROM users WHERE email = ? AND password = ?';
         if ($this->getDB()->select($query, array($this->email, $this->password1)))
-            return $this->setError('email', 'User already exists, please login instead')            ->succeeds(); // return immediately if there is error
+        {
+            $this->setError('email', 'User already exists, please login instead');
+            return $this->succeeds(); //return immediately if there is error
+        }
 
         //create user
         $user = new UserModel();
