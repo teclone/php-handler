@@ -29,6 +29,7 @@ composer require forensic/handler
 namespace app\Handler;
 
 use Forensic\Handler\Handler as BaseHandler;
+use SomeNamespace\Model\UserModel; //our model
 
 class AuthHandler extends BaseHandler
 {
@@ -60,50 +61,29 @@ class AuthHandler extends BaseHandler
 
         $this->setSource($source)->setRules($rules);
 
-        if ($this->execute())
-        {
-            //there was no error, write to database and set the user id on the handler.
-            $query = 'INSERT INTO users (email, password) VALUES (?, ?)';
-            $this->getDB()->insert($query, array($this->email, $this->password1));
+        if (!$this->execute())
+            return $this->succeeds(); //return immediately if there are errors
 
-            $user_id = $this->getDB()->lastInsertId();
-            $this->setData('userId', $user_id);
-        }
-        return $this->succeeds();
-    }
+        /*
+        * check if user exists, so that we dont create same user again
+        * we can check using the model, or execute a prepared separate query. we could also
+        * define this integrity check right in the rules above, only that we must implement
+        * the DBCheckerAbstract class which will be shown later
+        */
+        $query = 'SELECT id FROM users WHERE email = ? AND password = ?';
+        if ($this->getDB()->select($query, array($this->email, $this->password1)))
+            return $this->setError('email', 'User already exists, please login instead')            ->succeeds(); // return immediately if there is error
 
-    /**
-     * executes login
-     *@param array|string [$source = 'post'] - the source of the data. can also be an array
-    */
-    public function executeLogin($source = 'post')
-    {
-        $rules = [
-            //email field rule.
-            'email' => [
-                'type' => 'email',
-                'err' => '{this} is not a valid email address',
-            ],
-            'password' => [
-                'type' => 'password',
-            ]
-        ];
+        //create user
+        $user = new UserModel();
 
-        $this->setSource($source)->setRules($rules);
+        //do not copy password2 and rename password1 to just password
+        $this->modelSkipField('password2')->modelRenameField('password1', 'password');
+        $this->mapDataToModel($user)->save(); // it returns the model
 
-        if ($this->execute())
-        {
-            //check if the email and password matches a record in the database
-            $query = 'SELECT id FROM users WHERE email = ? AND password = PASSWORD(?)';
-            if ($result = $this->getDB()->select($query, array($this->email, $this->password)))
-            {
-                //login in user with id $result->id.
-            }
-            else
-            {
-                $this->setError('password', 'no user record found matching credentials');
-            }
-        }
+        //set the new user id
+        $this->setData('userId', $user->id);
+
         return $this->succeeds();
     }
 }
@@ -145,5 +125,3 @@ class AuthController extends BaseController
     }
 }
 ```
-
-**Note that the example above could also be simplified if we defined our database integrity checks within the field rules. This would required us implementing the db checker abstract**.
