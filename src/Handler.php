@@ -1072,7 +1072,7 @@ class Handler
     */
     public function modelSkipFields(array $fields)
     {
-        arrray_walk($fields, [$this, 'modelSkipField']);
+        array_walk($fields, [$this, 'modelSkipField']);
         return $this;
     }
 
@@ -1113,7 +1113,7 @@ class Handler
             throw new StateException('cannot map data to model in failure state');
 
         if (!is_object($model))
-            throw new InvalidArgumentException($model . ' is not a model object');
+            throw new InvalidArgumentException('Argument is not a model object');
 
         foreach($this->_data as $field => $value)
         {
