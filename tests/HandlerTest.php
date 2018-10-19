@@ -15,6 +15,7 @@ use Forensic\Handler\Test\Helpers\DBChecker;
 use Forensic\Handler\Exceptions\DBCheckerNotFoundException;
 use stdClass;
 use Forensic\Handler\Exceptions\StateException;
+use Forensic\Handler\Exceptions\InvalidArgumentException;
 
 class HandlerTest extends TestCase
 {
@@ -1279,6 +1280,79 @@ class HandlerTest extends TestCase
         {
             $model_field = $instance->resolveModelFieldName($field);
             $this->assertEquals($value, $model->{$model_field});
+        }
+    }
+
+    /**
+     * test that invalid argument exception is thrown if the argument is not an object
+    */
+    public function testMapDataToModelInvalidArgumentException()
+    {
+        $model = new stdClass();
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+
+        $instance->execute();
+
+        $this->expectException(InvalidArgumentException::class);
+        $instance->mapDataToModel([]);
+    }
+
+    /**
+     * test that we cannot map data to our model if our is in errornous state
+    */
+    public function testMapDataToModelStateException()
+    {
+        $model = new stdClass();
+        $instance = new Handler([], ['first-name' => ['type' => 'text']]);
+
+        $instance->execute();
+
+        $this->assertTrue($instance->fails());
+        $this->expectException(StateException::class);
+        $instance->mapDataToModel(new stdClass());
+    }
+
+    /**
+     * test that we can skip some fields while mapping data
+    */
+    public function testMapDataToModelWithSomeFieldsSkipped()
+    {
+        $model = new stdClass();
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+        $instance->execute();
+
+        $fields_to_skip = ['first-name', 'last-name'];
+        $instance->modelSkipFields($fields_to_skip);
+
+        $instance->mapDataToModel($model);
+
+        foreach($fields_to_skip as $field)
+        {
+            $this->assertObjectNotHasAttribute($instance->resolveModelFieldName($field), $model);
+        }
+    }
+
+    /**
+     * test that we can rename some fields while mapping data
+    */
+    public function testMapDataToModelWithSomeFieldsRenamed()
+    {
+        $model = new stdClass();
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+        $instance->execute();
+
+        $fields_to_rename = ['first-name' => 'firstName', 'last-name' => 'secondName'];
+        $instance->modelRenameFields($fields_to_rename);
+
+        $instance->mapDataToModel($model);
+
+        foreach($fields_to_rename as $old_name => $new_name)
+        {
+            $this->assertObjectHasAttribute($instance->resolveModelFieldName($new_name), $model);
+            $this->assertObjectNotHasAttribute($instance->resolveModelFieldName($old_name), $model);
+
+            $this->assertEquals($instance->getData($old_name),
+                $model->{$instance->resolveModelFieldName($new_name)});
         }
     }
 }
