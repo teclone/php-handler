@@ -13,6 +13,8 @@ use PHPUnit\Framework\Error\Warning;
 use Forensic\Handler\Exceptions\MissingParameterException;
 use Forensic\Handler\Test\Helpers\DBChecker;
 use Forensic\Handler\Exceptions\DBCheckerNotFoundException;
+use stdClass;
+use Forensic\Handler\Exceptions\StateException;
 
 class HandlerTest extends TestCase
 {
@@ -803,7 +805,6 @@ class HandlerTest extends TestCase
     public function testExecuteWithDataAndRulesSet()
     {
         $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
-        $this->assertTrue($instance->fails());
 
         $instance->execute();
         $this->assertTrue($instance->succeeds());
@@ -811,6 +812,21 @@ class HandlerTest extends TestCase
         //test that calling the execute method multiple times has no side effect
         $instance->execute();
         $this->assertTrue($instance->succeeds());
+    }
+
+    /**
+     * test that it throws state Exception if we access the succeeds or fails method
+     * without executing the instance first
+    */
+    public function testStateException()
+    {
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+
+        $this->expectException(StateException::class);
+        $instance->succeeds();
+
+        $this->expectException(StateException::class);
+        $instance->fails();
     }
 
     /**
@@ -1229,5 +1245,40 @@ class HandlerTest extends TestCase
         $this->expectException(DBCheckerNotFoundException::class);
         $instance = new Handler($data, $rules);
         $instance->execute();
+    }
+
+    /**
+     * test that the resolve model field name works as expected
+    */
+    public function testResolveModelFieldName()
+    {
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+
+        $this->assertEquals('first_name', $instance->resolveModelFieldName('first-name'));
+
+        $instance->modelCamelizeFields(true);
+        $this->assertEquals('firstName', $instance->resolveModelFieldName('first-name'));
+    }
+
+    /**
+     * test that the map to model function correctly maps the whole data to the given
+     * model
+    */
+    public function testMapDataToModel()
+    {
+        $model = new stdClass();
+        $instance = new Handler($this->getSimpleData(), $this->getSimpleRules());
+
+        $instance->execute();
+
+        $instance->mapDataToModel($model);
+
+        $all_data = $instance->getAllData();
+
+        foreach($all_data as $field => $value)
+        {
+            $model_field = $instance->resolveModelFieldName($field);
+            $this->assertEquals($value, $model->{$model_field});
+        }
     }
 }
