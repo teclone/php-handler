@@ -182,6 +182,18 @@ The module defines lots of validation rule types that covers a wide range of val
 
 - [File Type Validation](#file-type-validation)
 
+- [Image File Type Validation](#image-file-type-validation)
+
+- [Audio File Type Validation](#audio-file-type-validation)
+
+- [Video File Type Validation](#video-file-type-validation)
+
+- [Media File Type Validation](#media-file-type-validation)
+
+- [Document File Type Validation](#document-file-type-validation)
+
+- [Archive File Type Validation](#archive-file-type-validation)
+
 ### Limiting Rule Validation
 
 The limiting rule validation option touches every validation. It is where we can define the limiting length of a string or value. These includes the **min**, **max**, **gt** (greater than) and **lt** (less than) options.
@@ -510,7 +522,7 @@ if ($handler->succeeds())
 
 You can specify the accepted mime file extensions during validation. Note that the handler has a `FileExtensionDetector` module that detects file extension based on its magic number. Hence, limiting file extension spoofing errors. Please note that the current list of file magic numbers are still being updated, you can help us by reporting to us more magic bytes codes that are missing.
 
-To speicify accepted mimes, use the `mimes` options.
+To specify accepted mimes, use the `mimes` options.
 
 **Example**:
 
@@ -524,6 +536,108 @@ $rules => [
             'moveTo' => $move_to,
             'mimes' => array('jpeg', 'png') //we only accept jpeg and png files. no gif,
             'mimeErr' => 'we only accept jpeg and png images'
+        ],
+    ],
+];
+```
+
+### Image Type Validation
+
+The shorter way to validate images is to use the `image` type option. The accepted mimes for images include **JPEG**, **PNG** and **GIF**.
+
+```php
+$move_to = getcwd() . '/storage/media/pictures';
+$rules => [
+    'pictures' => [
+        'type' => 'image',
+        'options' => [
+            'max' => '400kb',
+            'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Audeo File Type Validation
+
+The shorter way to validate audios is to use the `audio` type option. The accepted mimes for audios include **MP3** and others.
+
+```php
+$move_to = getcwd() . '/storage/media/audeos';
+$rules => [
+    'pictures' => [
+        'type' => 'audeo',
+        'options' => [
+            'max' => '400mb',
+            'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Video File Type Validation
+
+The shorter way to validate videos is to use the `video` type option. The accepted mimes for videos include **MP4**, **OGG**, **MOVI**, and others.
+
+```php
+$move_to = getcwd() . '/storage/media/videos';
+$rules => [
+    'pictures' => [
+        'type' => 'video',
+        'options' => [
+            'max' => '400mb',
+            'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Media File Type Validation
+
+The shorter way to validate media files (videos, images and audios) is to use the `media` type option. The accepted mimes is a combination of **video**, **image** and **audio** mimes.
+
+```php
+$move_to = getcwd() . '/storage/media';
+$rules => [
+    'pictures' => [
+        'type' => 'media',
+        'options' => [
+            'max' => '400mb',
+            'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Document File Type Validation
+
+The shorter way to validate documents is to use the `document` type option. The accepted mimes for documents include **DOCX**, **PDF** and **DOC**, and others.
+
+```php
+$move_to = getcwd() . '/storage/documents';
+$rules => [
+    'pictures' => [
+        'type' => 'document',
+        'options' => [
+            'max' => '4mb',
+            'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Archive File Type Validation
+
+The shorter way to validate archive files is to use the `archive` type option. The accepted mimes for archives include **ZIP**, **TAR.GZ** and **TAR**, and others.
+
+```php
+$move_to = getcwd() . '/storage/archives';
+$rules => [
+    'pictures' => [
+        'type' => 'archive',
+        'options' => [
+            'max' => '50mb',
+            'moveTo' => $move_to,
         ],
     ],
 ];
