@@ -181,7 +181,8 @@ class HandlerTest extends TestCase
                     'email' => '(Harrisonifeanyichukwu@gmail.com)',
                     'website' => 'http://www.fjsfoundations.com',
                     'alpha-one' => 'a',
-                    'alpha-two' => 'Z'
+                    'alpha-two' => 'Z',
+                    'money' => '500',
                 ],
                 //rules
                 [
@@ -219,6 +220,11 @@ class HandlerTest extends TestCase
                             'toLower' => true
                         ],
                     ],
+                    'money' => [
+                        'filters' => [
+                            'numeric' => true,
+                        ],
+                    ],
                 ],
                 //is erronous
                 false,
@@ -233,7 +239,8 @@ class HandlerTest extends TestCase
                     'email' => 'Harrisonifeanyichukwu@gmail.com',
                     'website' => 'http://www.fjsfoundations.com',
                     'alpha-one' => 'A',
-                    'alpha-two' => 'z'
+                    'alpha-two' => 'z',
+                    'money' => 500
                 ]
             ],
         ];

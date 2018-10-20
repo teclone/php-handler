@@ -380,6 +380,9 @@ class Handler
         if (Util::keyNotSetOrTrue('stripTags', $filters))
             $value = strip_tags($value);
 
+        if (Util::keySetAndTrue('numeric', $filters))
+            $value = floatval($value);
+
         if (Util::keySetAndTrue('toUpper', $filters))
             $value = strtoupper($value);
 

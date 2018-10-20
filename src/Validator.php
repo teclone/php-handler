@@ -903,7 +903,7 @@ class Validator implements ValidatorInterface
      *@throws FileMoveException
     */
     public function validateDocument(bool $required, string $field, $value,
-    array $options, int $index = 0, string &$new_value = null): bool
+        array $options, int $index = 0, string &$new_value = null): bool
     {
         $options['mimes'] = Util::arrayValue(
             'mimes',
