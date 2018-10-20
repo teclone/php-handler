@@ -20,6 +20,9 @@ interface FileExtensionDetectorInterface
     /** returns array of document file mimes */
     public function getDocumentMimes(): array;
 
+    /** returns array of document file mimes */
+    public function getArchiveMimes(): array;
+
     /** resolves a given extension to something compatible with its internal extension */
     public function resolveExtension(string $ext): string;
 
