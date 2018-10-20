@@ -81,6 +81,11 @@ class FileExtensionDetector implements FileExtensionDetectorInterface
         return array('pdf', 'doc', 'docx');
     }
 
+    public function getArchiveMimes(): array
+    {
+        return array('tar.gz', 'tar', 'zip');
+    }
+
     /**
      * resolves a given extension to something compatible with its internal extension
      *
