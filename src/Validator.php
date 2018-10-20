@@ -74,6 +74,14 @@ class Validator implements ValidatorInterface
     */
     private $_file_extension_detector = null;
 
+    private $_file_unit_sizes = [
+        'tb' => 1000000000000,
+        'gb' => 1000000000,
+        'mb' => 1000000,
+        'kb' => 1000,
+        'bytes' => 1
+    ];
+
     /**
      * check file upload error
      *
@@ -271,27 +279,57 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * construct limiting rule error
+    */
+    protected function constructLimitingRuleErr(string $prefix, string $err,
+        $value, string $unit)
+    {
+        $prefix .= ' ';
+        $constructed_err = '';
+        switch($unit)
+        {
+            case 'characters':
+                $constructed_err = $prefix . $err . ' ' . number_format($value) .
+                    ' characters';
+                break;
+            case 'numeric':
+                $constructed_err = $prefix . $err . ' ' . number_format($value);
+                break;
+            case 'date':
+                $constructed_err = $prefix . $err . ' ' . $value;
+                break;
+            case 'file':
+                $actual_unit = '';
+                foreach($this->_file_unit_sizes as $unit => $size)
+                {
+                    if ($value >= $size)
+                    {
+                        $actual_unit = $unit;
+                        $value = $value / $size;
+                        break;
+                    }
+                }
+                $constructed_err = $prefix . $err . ' ' . number_format($value, 2) . $unit;
+                break;
+        }
+
+        return $constructed_err;
+    }
+
+    /**
      * resolve limiting value. string values will be converted accurately
     */
-    protected function resolveLimitingValue(string $key, array $options)
+    protected function resolveLimitingRuleValue(string $key, array $options)
     {
         $value = Util::value($key, $options);
         if (is_string($value))
         {
-            if (preg_match('/^(\d+[.]?\d*)(mb|kb|gb|tb)$/i', $value, $matches))
+            $units = array_keys($this->_file_unit_sizes);
+            $test = '/^([0-9]+[.]?[0-9]*)(' . implode('|', $units) . ')$/i';
+            if (preg_match($test, $value, $matches))
             {
                 $number = floatval($matches[1]);
-                switch(strolower($matches[2]))
-                {
-                    case 'kb':
-                        return $number * 1000;
-                    case 'mb':
-                        return $number * 1000000;
-                    case 'gb':
-                        return $number * 1000000000;
-                    case 'tb':
-                        return $number * 1000000000000;
-                }
+                return $number * $this->_file_unit_sizes[strtolower($matches[2])];
             }
         }
         return $value;
@@ -303,60 +341,80 @@ class Validator implements ValidatorInterface
      *@param mixed $value - the value
      *@param int|float|Datetime $actual - the actual value
      *@param array $options, int $index = 0 - the field rules
+     *@param string $unit - the unit of measurement to use
      *@param callback [$callback=null] - the callback method
-     *@param string [$sufix] - a string sufix to use
      *@param string [$prefix] - a string prefix to use
      *@return bool
     */
-    protected function checkLimitingRules($value, $actual, callable $callback = null,
-        string $sufix = '', string $prefix = '{_this}'): bool
+    protected function checkLimitingRules($value, $actual, string $unit,
+        callable $callback = null, string $prefix = '{_this}'): bool
     {
         $options = $this->_options;
         //check the min limit
-        $min = $this->resolveLimitingValue('min', $options);
+        $min = $this->resolveLimitingRuleValue('min', $options);
         if (!is_null($min))
         {
             $min = $this->runCallback($min, $callback);
             if($actual < $min)
             {
-                $default_err = $prefix . ' should not be less than ' . $min . $sufix;
-                return $this->setError(Util::value('minErr',$options, $default_err), $value);
+                $err = $this->constructLimitingRuleErr(
+                    $prefix,
+                    'should not be less than',
+                    $min,
+                    $unit
+                );
+                return $this->setError(Util::value('minErr',$options, $err), $value);
             }
         }
 
         //check the max limit
-        $max = $this->resolveLimitingValue('max', $options);
+        $max = $this->resolveLimitingRuleValue('max', $options);
         if (!is_null($max))
         {
             $max = $this->runCallback($max, $callback);
             if($actual > $max)
             {
-                $default_err = $prefix . ' should not be greater than ' . $max . $sufix;
-                return $this->setError(Util::value('maxErr',$options, $default_err), $value);
+                $err = $this->constructLimitingRuleErr(
+                    $prefix,
+                    'should not be greater than',
+                    $max,
+                    $unit
+                );
+                return $this->setError(Util::value('maxErr',$options, $err), $value);
             }
         }
 
         //check the gt limit
-        $gt = $this->resolveLimitingValue('gt', $options);
+        $gt = $this->resolveLimitingRuleValue('gt', $options);
         if (!is_null($gt))
         {
             $gt = $this->runCallback($gt, $callback);
             if($actual <= $gt)
             {
-                $default_err = $prefix . ' should be greater than ' . $gt . $sufix;
-                return $this->setError(Util::value('gtErr',$options, $default_err), $value);
+                $err = $this->constructLimitingRuleErr(
+                    $prefix,
+                    'should be greater than',
+                    $gt,
+                    $unit
+                );
+                return $this->setError(Util::value('gtErr',$options, $err), $value);
             }
         }
 
         //check the lt limit
-        $lt = $this->resolveLimitingValue('lt', $options);
+        $lt = $this->resolveLimitingRuleValue('lt', $options);
         if (!is_null($lt))
         {
             $lt = $this->runCallback($lt, $callback);
             if($actual >= $lt)
             {
-                $default_err = $prefix . ' should be less than ' . $lt . $sufix;
-                return $this->setError(Util::value('ltErr',$options, $default_err), $value);
+                $err = $this->constructLimitingRuleErr(
+                    $prefix,
+                    'should be less than',
+                    $lt,
+                    $unit
+                );
+                return $this->setError(Util::value('ltErr',$options, $err), $value);
             }
         }
 
@@ -439,7 +497,7 @@ class Validator implements ValidatorInterface
         {
             //validate the limiting rules
             $len = strlen($value);
-            $this->checkLimitingRules($value, $len, null, ' characters');
+            $this->checkLimitingRules($value, $len, 'characters');
 
             //check for formatting rules
             if ($this->succeeds())
@@ -450,7 +508,6 @@ class Validator implements ValidatorInterface
 
     /**
      * validates date
-     *
      *@param bool $required - boolean indicating if field is required
      *@return bool
     */
@@ -492,7 +549,7 @@ class Validator implements ValidatorInterface
 
             //validate the limiting rules
             if (!is_null($date))
-                $this->checkLimitingRules($value, $date, function($value) {
+                $this->checkLimitingRules($value, $date, 'date', function($value) {
                     return $value instanceof DateTime? $value : new DateTime($value);
                 });
         }
@@ -511,7 +568,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[-+]?\d+$/', $value))
-                $this->checkLimitingRules($value, intval($value));
+                $this->checkLimitingRules($value, intval($value), 'numeric');
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid integer'),
@@ -533,7 +590,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[+]?\d+$/', $value))
-                $this->checkLimitingRules($value, intval($value)); //check limiting rules
+                $this->checkLimitingRules($value, intval($value), 'numeric'); //check limiting rules
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid positive integer'),
@@ -555,7 +612,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^-\d+$/', $value))
-                $this->checkLimitingRules($value, intval($value)); //check limiting rules
+                $this->checkLimitingRules($value, intval($value), 'numeric'); //check limiting rules
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid negative integer'),
@@ -577,7 +634,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^(?:[-+]?\d+(\.\d+)?|\.\d+)$/', $value))
-                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
+                $this->checkLimitingRules($value, floatval($value), 'numeric'); //check limiting rules
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid number'),
@@ -599,7 +656,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^(?:\+?\d+(\.\d+)?|\.\d+)$/', $value))
-                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
+                $this->checkLimitingRules($value, floatval($value), 'numeric'); //check limiting rules
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid positive number'),
@@ -621,7 +678,7 @@ class Validator implements ValidatorInterface
         if ($this->setup($required, $field, $value, $options, $index))
         {
             if (preg_match('/^[-]\d+(\.\d+)?$/', $value))
-                $this->checkLimitingRules($value, floatval($value)); //check limiting rules
+                $this->checkLimitingRules($value, floatval($value), 'numeric'); //check limiting rules
             else
                 $this->setError(
                     Util::value('err', $options, '{this} is not a valid negative number'),
@@ -745,7 +802,7 @@ class Validator implements ValidatorInterface
         {
             //validate the limiting rules
             $len = strlen($value);
-            $this->checkLimitingRules($value, $len, null, ' characters', 'Password');
+            $this->checkLimitingRules($value, $len, 'characters', null, 'Password');
 
             //check for regex rules
             if ($this->succeeds())
@@ -779,7 +836,7 @@ class Validator implements ValidatorInterface
 
             //validate limiting rules
             $file_size = Util::makeArray($files['size'])[$index];
-            if (!$this->checkLimitingRules($value, $file_size))
+            if (!$this->checkLimitingRules($value, $file_size, 'file'))
                 return $this->postValidate($value, $options);
 
             //test file extension
