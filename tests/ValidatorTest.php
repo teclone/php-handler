@@ -307,15 +307,14 @@ class ValidatorTest extends TestCase
     {
         return [
             'set 1' => [
-                'validateText',
-                'first_name',
-                ['Harrison'],
+                'validateInteger',
+                'favorite_number',
+                [100],
                 [
-                    'max' => 6,
-                    'maxErr' => '{_this} should not exceed 6 characters'
+                    'max' => 50,
                 ],
                 [
-                    'first_name should not exceed 6 characters',
+                    'favorite_number should not be greater than 50',
                 ]
             ],
             'set 2' => [
@@ -736,6 +735,50 @@ class ValidatorTest extends TestCase
                 true,
                 '".txt" file extension not accepted'
             ],
+
+            //document file validation method
+            'archive file validation set 1' => [
+                'validateArchive',
+                'file2.txt',
+                'text/plain',
+                true,
+                '".txt" file extension not accepted'
+            ],
+        ];
+    }
+
+    /**
+     * provides data used in testing limiting value resolution
+     *
+     *@return array
+    */
+    public function limitingValueResolutionTestDataProvider()
+    {
+        return [
+            'kb resolution test set' => [
+                'first-name',
+                'Harrison',
+                [
+                    'min' => '2kb'
+                ],
+                'first-name should not be less than 2,000 characters'
+            ],
+            'mb resolution test set' => [
+                'first-name',
+                'Harrison',
+                [
+                    'min' => '2.5mb'
+                ],
+                'first-name should not be less than 2,500,000 characters'
+            ],
+            'gb resolution test set' => [
+                'first-name',
+                'Harrison',
+                [
+                    'min' => '0.5gb'
+                ],
+                'first-name should not be less than 500,000,000 characters'
+            ],
         ];
     }
 
@@ -1046,5 +1089,17 @@ class ValidatorTest extends TestCase
         {
             $this->assertTrue($this->_validator->succeeds());
         }
+    }
+
+    /**
+     * test that limiting values are resolved accurately
+     *@dataProvider limitingValueResolutionTestDataProvider
+    */
+    public function testLimitingValueResolution(string $field, $value, array $option,
+        string $err)
+    {
+        $this->_validator->validateText(true, $field, $value, $option);
+        $this->assertFalse($this->_validator->succeeds());
+        $this->assertEquals($err, $this->_validator->getError());
     }
 }
