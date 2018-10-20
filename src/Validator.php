@@ -996,4 +996,21 @@ class Validator implements ValidatorInterface
         );
         return $this->validateFile($required, $field, $value, $options, $index, $new_value);
     }
+
+    /**
+     * validates archive file upload
+     *
+     *@throws DirectoryNotFoundException
+     *@throws FileMoveException
+    */
+    public function validateArchive(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool
+    {
+        $options['mimes'] = Util::arrayValue(
+            'mimes',
+            $options,
+            $this->_file_extension_detector->getArchiveMimes()
+        );
+        return $this->validateFile($required, $field, $value, $options, $index, $new_value);
+    }
 }
