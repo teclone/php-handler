@@ -380,7 +380,7 @@ class Handler
             $value = trim($value);
 
         if (Util::keyNotSetOrTrue('stripTags', $filters))
-            $value = strip_tags($value);
+            $value = strip_tags($value, Util::value('stripTagsIgnore', $filters, ''));
 
         if (Util::keySetAndTrue('numeric', $filters))
             $value = floatval($value);

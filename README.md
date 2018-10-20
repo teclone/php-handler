@@ -6,7 +6,7 @@ It makes the validation process easy and requires you to just define the data va
 
 The most interesting part is how easy it is to validate array of field data and files and the wide range of validation rule types that it affords you. It is also extensible so that you can define more validation rules if the need be.
 
-Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract DBChecker class. This makes it not tied to any framework or ORM. It is quite easy to implement.
+Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract `DBChecker` class. This makes it not tied to any framework or ORM. It is quite easy to implement.
 
 ## Getting Started
 
@@ -131,7 +131,7 @@ class AuthController extends BaseController
 
 ## Validation Rule Formats
 
-Validation rules are defined as arrays keyed by the their field names. Each field array should have a `type` property that defines the type of validation. Optional fields should have a `required` key property set to `false`. Every other rule details must go into the `options` array key except the `filters`, `matchWith` `check` and `checks` database rules.
+Validation rules are defined as arrays keyed by the their field names. Each field array should have a `type` property that defines the type of validation. Optional fields should have a `required` key property set to `false`. Every other rule details must go into the `options` array key except the `filters`, `check` and `checks` database rules.
 
 During validation, there are some special ways of referencing the validation principals. `{_this}` references the current field under validation, `{this}` references the current field value under validation, while `{_index}` references the current field value index position (in the case of validating array of fields).
 
@@ -158,6 +158,41 @@ $rules = [
         ],
     ],
 ]
+```
+
+## Validation Filters
+
+Filters are applied to the field values prior to validations. You can use filters to convert values to lower or upper case, cast it to a numeric value, avoid stripping of tags (which is true by default) and lots more. The available filters include:
+
+1. **decode**: defaults to true
+
+2. **trim**: defaults to true
+
+3. **stripTags**: defaults to true
+
+4. **stripTagsIgnore**: defaults to empty string
+
+5. **numeric**: defaults to false
+
+6. **toUpper**: defaults to false
+
+7. **toLower**: defaults to false
+
+**Usage Example**:
+
+```php
+$rules = [
+    'country' => [
+        'filters' => [
+            'toLower' => true //convert to lowercase
+        ],
+    ],
+    'comment' => [
+        'filter' => [
+            'stripTagsIgnore' => '<p><br>'
+        ],
+    ],
+];
 ```
 
 ## Validation Rule Types
@@ -638,6 +673,181 @@ $rules => [
         'options' => [
             'max' => '50mb',
             'moveTo' => $move_to,
+        ],
+    ],
+];
+```
+
+### Implementing the DBChecker Validation
+
+To enable database integrity checks, you must implement two methods on the `DBCheckerAbstract` class which are the `buildQuery` and `execute` methods. Then you have to supply an instance of your concrete class as the fourth argument to the Handler.
+
+Below shows how you can do this in Laravel:
+
+```php
+<?php
+namespace app\Handler;
+
+use Forensic\Handler\Abstracts\DBCheckerAbstract;
+use Illuminate\Support\Facades\DB;
+
+class DBChecker extends DBCheckerAbstract
+{
+    /**
+     * construct query from the given options
+     *
+     *@param array $options - array of options
+     * the options array contains the following fields.
+     * 'entity': is the database table
+     * 'params': which is array of parameters. defaults to empty array
+     * 'query': which is the query to run. defaults to empty string
+     *  'field': if the query parameter is empty string, then there is the field parameter
+     * that refers to the database table column to check
+    */
+    protected function buildQuery(array $options): string
+    {
+        $query = $options['query'];
+
+        //if the query is empty string, we build it according to our orm
+        if ($query === '')
+        {
+            //build the query
+            $query = 'SELECT * FROM ' . $options['entity'] . ' WHERE ' .
+                $options['field'] . ' = ?';
+        }
+        return $query;
+    }
+
+    /**
+     * executes the query. the execute method should return array of result or empty
+     * array if there is no result
+    */
+    protected function execute(string $query, array $params, array $options): array
+    {
+        return DB::select($query, $params);
+    }
+}
+```
+
+Then we can define our own `BaseHandler` and supply an instance of our concrete class as fourth argument to the parent `Handler` module constructor as shown below:
+
+```php
+//file BaseHandler
+namespace app\Handler;
+
+use Forensic\Handler\Handler as ParentHandler;
+
+class BaseHandler extends ParentHandler
+{
+    public function construct($source = null, array $rules = null)
+    {
+        parent::__construct($source, $rules, null, new DBChecker());
+    }
+}
+```
+
+Hence forth, we can now use 'check' and 'checks' rule options like shown below:
+
+```php
+// file AuthHandler.php
+
+namespace app\Handler;
+
+use app\Model\UserModel; //our model
+
+class AuthHandler extends BaseHandler
+{
+    /**
+     * executes signup
+     *@param array|string [$source = 'post'] - the source of the data. can also be an array
+    */
+    public function executeSignup($source = 'post')
+    {
+        $rules = [
+            //email field rule.
+            'email' => [
+                'type' => 'email',
+                'err' => '{this} is not a valid email address',
+
+                //db check rule goes here
+                'check' => [
+                    'if' => 'exists',
+                    'entity' => 'users',
+                    'field' => 'email',
+                    'err' => 'User with email {this} already exists, login instead',
+                ]
+            ],
+            'password1' => [
+                'type' => 'password',
+            ],
+            'password2' => [
+                'type' => 'password',
+                'matchWith' => '{password1}'
+            ],
+        ];
+
+        $this->setSource($source)->setRules($rules);
+
+        if (!$this->execute())
+            return $this->succeeds(); //return immediately if there are errors
+
+        //create user
+        $user = new UserModel();
+
+        //do not copy password2 and rename password1 to just password
+        $this->modelSkipField('password2')->modelRenameField('password1', 'password');
+        $this->mapDataToModel($user)->save(); // it returns the model
+
+        //set the new user id
+        $this->setData('userId', $user->id);
+
+        return $this->succeeds();
+    }
+}
+```
+
+### Defining Check and Checks Integrity Rules
+
+The `check` option defines a single database integrity check while the `checks` option defines array of database integrity checks.
+
+If there is no `query` option defined in the check array, there should be a `field` and `entity` options specified to help build the simple query. If the `field` option is omitted, it will default to the current field name under validation; However, if the field value is an integer, it will default to **id** rather than the field name.
+
+To illustrate, below is an example:
+
+```php
+$rules = [
+    'userid' => [
+        'type' => 'positiveInt',
+        'check' => [
+            'if' => 'notExist',
+            'entity' => 'users'
+            //since no field is defined, it will defualt to id rather than userid
+            //because field value is an integer. also, the params array will default
+            //to array({this})
+        ]
+    ],
+    'email' => [
+        'type' => 'email',
+        'checks' => [
+            //first check
+            [
+                'if' => 'exists',
+                'entity' => 'users'
+                //since no field is defined, it will defualt to email
+            ],
+            //more checks goes here
+        ]
+    ],
+    'country' => [
+        'type' => 'text',
+        'checks' => [
+            //first check
+            [
+                'if' => 'notExist',
+                'query' => 'SELECT * from countries WHERE value = ?',
+                'params' => array('{this}'),
+                'err' => '{this} is not recognised as a country in our database'
+            ],
         ],
     ],
 ];
