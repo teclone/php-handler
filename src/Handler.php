@@ -574,6 +574,9 @@ class Handler
                 case 'current_date':
                     return '' . new DateTime();
 
+                case 'current_year':
+                    return intval(date('Y'));
+
                 case 'current_timestamp':
                 case 'current_time':
                     return time();

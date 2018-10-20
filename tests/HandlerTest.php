@@ -280,7 +280,7 @@ class HandlerTest extends TestCase
                         'type' => 'range',
                         'options' => [
                             'from' => 1920,
-                            'to' => date('Y'),
+                            'to' => '{CURRENT_YEAR}',
                         ],
                         'requireIf' => [
                             'condition' => 'notChecked',

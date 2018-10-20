@@ -271,6 +271,33 @@ class Validator implements ValidatorInterface
     }
 
     /**
+     * resolve limiting value. string values will be converted accurately
+    */
+    protected function resolveLimitingValue(string $key, array $options)
+    {
+        $value = Util::value($key, $options);
+        if (is_string($value))
+        {
+            if (preg_match('/^(\d+[.]?\d*)(mb|kb|gb|tb)$/i', $value, $matches))
+            {
+                $number = floatval($matches[1]);
+                switch(strolower($matches[2]))
+                {
+                    case 'kb':
+                        return $number * 1000;
+                    case 'mb':
+                        return $number * 1000000;
+                    case 'gb':
+                        return $number * 1000000000;
+                    case 'tb':
+                        return $number * 1000000000000;
+                }
+            }
+        }
+        return $value;
+    }
+
+    /**
      * checks the limiting rules such as min, max, lt, gt
      *
      *@param mixed $value - the value
@@ -286,7 +313,7 @@ class Validator implements ValidatorInterface
     {
         $options = $this->_options;
         //check the min limit
-        $min = Util::value('min', $options);
+        $min = $this->resolveLimitingValue('min', $options);
         if (!is_null($min))
         {
             $min = $this->runCallback($min, $callback);
@@ -298,7 +325,7 @@ class Validator implements ValidatorInterface
         }
 
         //check the max limit
-        $max = Util::value('max', $options);
+        $max = $this->resolveLimitingValue('max', $options);
         if (!is_null($max))
         {
             $max = $this->runCallback($max, $callback);
@@ -310,7 +337,7 @@ class Validator implements ValidatorInterface
         }
 
         //check the gt limit
-        $gt = Util::value('gt', $options);
+        $gt = $this->resolveLimitingValue('gt', $options);
         if (!is_null($gt))
         {
             $gt = $this->runCallback($gt, $callback);
@@ -322,7 +349,7 @@ class Validator implements ValidatorInterface
         }
 
         //check the lt limit
-        $lt = Util::value('lt', $options);
+        $lt = $this->resolveLimitingValue('lt', $options);
         if (!is_null($lt))
         {
             $lt = $this->runCallback($lt, $callback);

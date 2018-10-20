@@ -168,6 +168,20 @@ The module defines lots of validation rule types that covers a wide range of val
 
 - [Regex Rule Validation](#regex-rule-validation)
 
+- [MatchWith Rule Validation](#matchwith-rule-validation)
+
+- [Date Type Validation](#date-type-validation)
+
+- [Range Type Validation](#range-type-validation)
+
+- [Choice Type Validation](#choice-type-validation)
+
+- [Numeric Type Validation](#numeric-type-validation)
+
+- [Password Type Validation](#password-type-validation)
+
+- [File Type Validation](#file-type-validation)
+
 ### Limiting Rule Validation
 
 The limiting rule validation option touches every validation. It is where we can define the limiting length of a string or value. These includes the **min**, **max**, **gt** (greater than) and **lt** (less than) options.
@@ -266,4 +280,251 @@ $rules = [
         ],
     ],
 ]
+```
+
+### MatchWith Rule Validation
+
+This rule is handy when you want to make sure that a field's value matches another field's value such as in password confirmation fields as well as email and phone confirmation scenerios.
+
+**Example**:
+
+```php
+$rules = [
+    'password1' => [
+        'type' => 'password'
+    ],
+    'password2' => [
+        'type' => 'password',
+        'options' => [
+            'matchWith' => '{password1}', //reference password1 value
+            'err' => 'Passwords do not match'
+        ],
+    ],
+];
+```
+
+### Date Type Validation
+
+To validate dates, set the type property to *'date'*. You can specify [limiting rules](#limiting-rule-validation) that validates if the date is within a given limited range.
+
+### Range Type Validation
+
+To validate field as a range of value, set the type property to **range**. The range type accepts three more options keys, which are **from**, **to** and the **step** optional key.
+
+**Example**:
+
+```php
+$rules = [
+    'day' => [
+        'type' => 'range',
+        'options' => [
+            'from' => 1,
+            'to' => 31,
+        ],
+    ],
+    'month' => [
+        'type' => 'range',
+        'options' => [
+            'from' => 1,
+            'to' => 12,
+        ],
+    ],
+    'year' => [
+        'type' => 'range',
+        'options' => [
+            'from' => 1950,
+            'to' => '{CURRENT_YEAR}',
+        ],
+    ],
+    'even-number' => [
+        'type' => 'range',
+        'options' => [
+            'from' => 0,
+            'to' => 100,
+            'step' => 2,
+            'err' => '{this} is not a valid even number between 0-100'
+        ],
+    ]
+];
+```
+
+### Choice Type Validation
+
+To validate field against a choice of options, set the type property to **choice**. The choice type accepts **choices** options key which is an array of acceptable choice options. The [range](#range-type-validation) type makes use of this type validator internally.
+
+**Example**:
+
+```php
+$rules = [
+    'country' => [
+        'type' => 'choice',
+        'options' => [
+            'choices' => array('ng', 'gb', 'us', 'ca', ...),// array of country codes,
+            'err' => '{this} is not a valid country code'
+        ],
+    ],
+];
+```
+
+### Email Type Validation
+
+To validate email addresses, set the type property to type `email`.
+
+```php
+$rules = [
+    'email' => [
+        'type' => 'email'
+    ],
+];
+```
+
+### URL Type Validation
+
+To validate url, set the type property to type `url`.
+
+```php
+$rules = [
+    'website' => [
+        'type' => 'url'
+    ],
+];
+```
+
+### Numeric Type Validation
+
+To validate numbers, integers whether positive or negative, the following types are avaliable: `float`, `number`, 'positiveFloat' or `pFloat`, `negativeFloat`, or `nFloat`, `money` (same as float), `integer`, `int`, `pInt`, `nInt`, `negativeInt`, etc. It does not matter the naming convention used.
+
+```php
+$rules = [
+    'favorite-number' => [
+        'type' => 'number'
+    ],
+    'user-id' => [
+        'type' => 'positiveInt', //starts from 1.  note that 1.5 would fail. but 2 is valid
+    ]
+];
+```
+
+### Password Type Validation
+
+Password type validation is more like text validation except that some limiting rules and regex rules were added. The default validation implementation is that passwords must be at least 8 charaters long, and 28 characters max. It must contain at least two alphabets and at least two non alphabets. You can override this default if you like.
+
+The rule is like below
+
+```php
+[
+    'min' => 8,
+    'max' => 28,
+    'regexAll' => [
+        //password should contain at least two alphabets
+        [
+            'test' => '/[a-z].*[a-z]/i',
+            'err' => 'Password must contain at least two letter alphabets'
+        ],
+        //password should contain at least two non letter alphabets
+        [
+            'test' => '/[^a-z].*[^a-z]/i',
+            'err' => 'Password must contain at least two non letter alphabets'
+        ],
+    ],
+];
+```
+
+### File Type Validation
+
+The module can validate files, including the integrity of file mime types. It offers wide flavours of file validation such as images, videos, audios, documents and archives.
+
+The simplest file validation rule is like below
+
+```php
+$rules => [
+    'picture' => [
+        'type' => 'file',
+        'options' => [
+            //some limiting rules regarding file size
+            'min' => '50kb' //it will be converted accurately
+        ]
+    ],
+];
+```
+
+You can define an absolute path to move the file to using the **moveTo** option. when the file is being, a hashed name is computed for it, and the field name is replaced with the computed hash value.
+
+```php
+use Forensic\Handler\Handler;
+
+$move_to = getcwd() . '/storage/media/pictures';
+$rules => [
+    'picture' => [
+        'type' => 'file',
+        'options' => [
+            'moveTo' => $move_to
+        ],
+    ],
+];
+
+$handler = new Handler('post', $rules);
+$handler->execute();
+
+if ($handler->succeeds())
+{
+    $file_name = $handler->picture; //the computed hash name is stored in the field
+    $file_abs_path = $move_to . '/' . $file_name;
+}
+```
+
+### Dealing With Multi-Value Fields and Files
+
+The handler can process multi-value fields and file fields. The field values are stored inside arrays after processing.
+
+**Example**:
+
+```php
+$move_to = getcwd() . '/storage/media/pictures';
+$rules => [
+    'pictures' => [
+        'type' => 'file',
+        'options' => [
+            'max' => '400kb',
+            'moveTo' => $move_to
+        ],
+    ],
+];
+
+$handler = new Handler('post', $rules);
+$handler->execute();
+
+if ($handler->succeeds())
+{
+    array_walk(function($file_name) {
+        /**
+         * we walk through all the files, and do whatever we want.
+        */
+        $abs_path = $move_to . '/' . $file_name; // abs path of current file.
+
+    }, $handler->pictures);
+}
+```
+
+### Specifying Accepted File Mimes Extensions
+
+You can specify the accepted mime file extensions during validation. Note that the handler has a `FileExtensionDetector` module that detects file extension based on its magic number. Hence, limiting file extension spoofing errors. Please note that the current list of file magic numbers are still being updated, you can help us by reporting to us more magic bytes codes that are missing.
+
+To speicify accepted mimes, use the `mimes` options.
+
+**Example**:
+
+```php
+$move_to = getcwd() . '/storage/media/pictures';
+$rules => [
+    'pictures' => [
+        'type' => 'file',
+        'options' => [
+            'max' => '400kb',
+            'moveTo' => $move_to,
+            'mimes' => array('jpeg', 'png') //we only accept jpeg and png files. no gif,
+            'mimeErr' => 'we only accept jpeg and png images'
+        ],
+    ],
+];
 ```
