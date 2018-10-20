@@ -128,3 +128,142 @@ class AuthController extends BaseController
     }
 }
 ```
+
+## Validation Rule Formats
+
+Validation rules are defined as arrays keyed by the their field names. Each field array should have a `type` property that defines the type of validation. Optional fields should have a `required` key property set to `false`. Every other rule details must go into the `options` array key except the `filters`, `matchWith` `check` and `checks` database rules.
+
+During validation, there are some special ways of referencing the validation principals. `{_this}` references the current field under validation, `{this}` references the current field value under validation, while `{_index}` references the current field value index position (in the case of validating array of fields).
+
+**Example**:
+
+```php
+$rules = [
+    'first-name' => [
+        'type' => 'text',
+        'options' => [
+            'min' => 3, //the name should be at least 3 letter charaters
+            'minErr' => 'first name should be at least 3 charaters length'
+        ],
+    ],
+    //we are expecting an array of favorite colors
+    'favorite-colors' => [
+        'type' => 'choice',
+        'filters' => [
+            'toLower' => true, //convert the colors to lowercase
+        ],
+        'options' => [
+            'choices' => array('green', 'white', 'blue', 'red', 'violet', 'purple'),
+            'err' => '{this} is not a color', // or 'color {_index} is not a color'
+        ],
+    ],
+]
+```
+
+## Validation Rule Types
+
+The module defines lots of validation rule types that covers a wide range of validation requirements. These includes the following:
+
+- [Limiting Rule Validation](#limiting-rule-validation)
+
+- [Regex Rule Validation](#regex-rule-validation)
+
+### Limiting Rule Validation
+
+The limiting rule validation option touches every validation. It is where we can define the limiting length of a string or value. These includes the **min**, **max**, **gt** (greater than) and **lt** (less than) options.
+
+**Example**:
+
+```php
+$rules = [
+    'first-name' => [
+        'type' => 'text',
+        'options' => [
+            'min' => 3,
+            'minErr' => 'first name should be at least 3 characters length',
+            'max' => 15,
+        ]
+    ],
+    'favorite-integer' => [
+        'type' => 'positiveInteger',
+        'options' => [
+            'lt' => 101, //should be less than 101, or max of 100.
+        ]
+    ],
+    'date-of-birth' => [
+        'type' => 'date',
+        'options' => [
+            'min' => '01-01-1990', //only interested in people born on or after 01-01-1990
+            'max' => '{CURRENT_DATE}'
+        ]
+    ],
+];
+```
+
+### Regex Rule Validation
+
+It is quite easy to carry out different flavours of regex rule tests on our data. There are four kinds of regex rules. These include single **regex** test, **regexAny**, **regexAll**, and **regexNone** tests.
+
+For **regex** type, it must match the test, otherwise it is flagged as error. For **regexAny**, at least one of the tests must match. For **regexAll**, all regex tests must match. For **regexNone**, none of the regex tests should match.
+
+**Example**:
+
+```php
+$rules = [
+    'first-name' => [
+        'type' => 'text',
+        'regexAll' => [
+            //name must start with letter
+            [
+                'test' => '/^[a-z]/i',
+                'err' => 'name must start with an alphabet'
+            ],
+            //only aphabets, dash and apostrophe is allowed in name
+            [
+                'test' => '/^[-a-z\']+$/',
+                'err' => 'only aphabets, dash, and apostrophe is allowed in name'
+            ]
+        ]
+    ],
+    'country' => [
+        'type' => 'text',
+        'options' => [
+            'regex' => [
+                'test' => '/^[a-z]{2}$/',
+                'err' => '{this} is not a 2-letter country iso-code name'
+            ]
+        ],
+    ],
+    'phone-number' => [
+        'type' => 'text',
+        'options' => [
+            'regexAny' => [
+                'tests' => [
+                    //phone number can match nigeria mobile number format
+                    '/^0[0-9]{3}[-\s]?[0-9]{3}[-\s]?[0-9]{4}$/',
+
+                    //phone number can match uk mobile number format
+                    '/^07[0-9]{3}[-\s]?[0-9]{6}$/'
+                ],
+                'err' => 'only nigeria and uk number formats are accepted'
+            ]
+        ]
+    ],
+    'favorite-colors' => [
+        'options' => [
+            'regexNone' => [
+                //we dont accept white as a color
+                [
+                    'test' => '/^white$/i',
+                    'err' => '{this} is not an acceptable color'
+                ],
+                //we dont accept black either
+                [
+                    'test' => '/^black$/i',
+                    'err' => '{this} is not an acceptable color'
+                ],
+            ],
+        ],
+    ],
+]
+```
