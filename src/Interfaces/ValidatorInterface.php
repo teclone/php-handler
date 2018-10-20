@@ -81,7 +81,11 @@ interface ValidatorInterface extends CommonInterface
     public function validateMedia(bool $required, string $field, $value,
         array $options, int $index = 0, string &$new_value = null): bool;
 
-    /** media validation interface */
+    /** document validation interface */
     public function validateDocument(bool $required, string $field, $value,
+        array $options, int $index = 0, string &$new_value = null): bool;
+
+    /** archive file validation interface */
+    public function validateArchive(bool $required, string $field, $value,
         array $options, int $index = 0, string &$new_value = null): bool;
 }
