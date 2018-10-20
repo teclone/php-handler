@@ -180,6 +180,8 @@ class Handler
             //document file validation
             'document' => 'validateDocument',
 
+            'archive' => 'validateArchive',
+
             //password validation
             'password' => 'validatePassword'
         ];
