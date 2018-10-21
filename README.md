@@ -1,12 +1,17 @@
 # Handler
 
+[![Build Status](https://travis-ci.org/harrison-ifeanyichukwu/handler.svg?branch=master)](https://travis-ci.org/harrison-ifeanyichukwu/handler)
+[![Coverage Status](https://coveralls.io/repos/github/harrison-ifeanyichukwu/handler/badge.svg?branch=master)](https://coveralls.io/github/harrison-ifeanyichukwu/handler?branch=master)
+[![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
+![Packagist](https://img.shields.io/packagist/dt/forensic/feed-parser.svg)
+
 Forensic Handler is a php module that sits independently between the controller and the model, performing request data validation, serialization and integrity checks. It is easy to setup and independent of any php framework and ORMs.
 
 It makes the validation process easy and requires you to just define the data validation rules which are just php arrays.
 
 The most interesting part is how easy it is to validate array of field data and files and the wide range of validation rule types that it affords you. It is also extensible so that you can define more validation rules if the need be.
 
-Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract `DBChecker` class. This makes it not tied to any framework or ORM. It is quite easy to implement.
+Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract `DBCheckerAbstract` class. This makes it not tied to any framework or ORM. It is quite easy to [implement](#implementing-the-dbcheckerabstract-validation).
 
 ## Getting Started
 
@@ -134,6 +139,8 @@ class AuthController extends BaseController
 Validation rules are defined as arrays keyed by the their field names. Each field array should have a `type` property that defines the type of validation. Optional fields should have a `required` key property set to `false`. Every other rule details must go into the `options` array key except the `filters`, `check` and `checks` database rules.
 
 During validation, there are some special ways of referencing the validation principals. `{_this}` references the current field under validation, `{this}` references the current field value under validation, while `{_index}` references the current field value index position (in the case of validating array of fields).
+
+Others include `{CURRENT_DATE}`, `{CURRENT_YEAR}`, `{CURRENT_TIME}`.
 
 **Example**:
 
@@ -678,7 +685,7 @@ $rules => [
 ];
 ```
 
-### Implementing the DBChecker Validation
+### Implementing the DBCheckerAbstract Validation
 
 To enable database integrity checks, you must implement two methods on the `DBCheckerAbstract` class which are the `buildQuery` and `execute` methods. Then you have to supply an instance of your concrete class as the fourth argument to the Handler.
 
@@ -851,4 +858,114 @@ $rules = [
         ],
     ],
 ];
+```
+
+### Writing Your Custom Validators
+
+The module is built to be extensible such that you can define more validator methods and use your own custom rule types. You would need to understand some basic things on how the package works. Insecting the `ValidatorInterface` and the `Validator` class files is a nice place to start. Below shows how this can be easily achieved.
+
+**Define our custom validator, it inherits from the package validator**:
+
+```php
+<?php
+//file CustomValidator.php
+namespace app\Handler;
+
+use Forensic\Handler\Validator;
+
+class CustomValidator extends Validator
+{
+    protected function validateName(bool $required, string $field, $value,
+        array $options, int $index = 0): bool
+    {
+        $options['min'] = 3;
+        $options['max'] = 15;
+        $options['regexAll'] = [
+            //only alphabets dash and apostrophe is allowed in names
+            [
+                'test' => '/^[-a-z\']$/i',
+                'err' => 'only alphabets, hyphen and apostrophe allowed in names'
+            ]
+            //name must start with at least two alphabets
+            [
+                'test' => '/^[a-z]{2,}/i',
+                'err' => 'name must start with at least two alphabets'
+            ],
+        ];
+        return $this->validateText($required, $field, $value, $options, $index);
+    }
+}
+```
+
+Then we can define our own `BaseHandler` that integrates the newly **name** type validator like shown below:
+
+```php
+//file BaseHandler
+namespace app\Handler;
+
+use Forensic\Handler\Handler as ParentHandler;
+
+class BaseHandler extends ParentHandler
+{
+    public function construct($source = null, array $rules = null)
+    {
+        parent::__construct($source, $rules, null, new DBChecker());
+    }
+
+    /**
+     *@override. override the parent class method
+    */
+    public function getRuleTypesMethodMap(): array
+    {
+        return array_merge(parent::getRuleTypesMethodMap(), [
+            'name' => 'validateName'
+        ]);
+    }
+}
+```
+
+Hence forth, we can now use  the **name** type to validate names like shown below:
+
+```php
+// file ProfileHandler.php
+
+namespace app\Handler;
+
+use app\Model\UserModel; //our model
+
+class ProfileHandler extends BaseHandler
+{
+    /**
+     * updates user profile
+     *@param array|string [$source = 'post'] - the source of the data. can also be an array
+    */
+    public function updateProfile($source = 'post')
+    {
+        $rules = [
+            //email field rule.
+            'id' => [
+                'type' => 'positiveInteger',
+
+                //db check rule goes here
+                'check' => [
+                    'if' => 'doesNotExist',
+                    'entity' => 'users',
+                    'err' => 'No user found with id {this}',
+                ]
+            ],
+            'first-name' => [
+                'type' => 'name',
+            ],
+            'last-name' => [
+                'type' => 'name',
+            ],
+            'middle-name' => [
+                'type' => 'name',
+                'required' => false,
+                'default' => ''
+            ]
+        ];
+        //more codes below
+    }
+}
 ```
