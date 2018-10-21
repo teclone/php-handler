@@ -242,9 +242,18 @@ class Handler
             //if there is no query, set the field key and the params key
             if (!array_key_exists('query', $db_check))
             {
-                $db_check['field'] = Util::value('field', $db_check, is_int($value)? 'id' : $field); //defaults to id
-                $db_check['params'] = Util::arrayValue('params', $db_check, [$value]); //defaults to value
+                $db_check['field'] = Util::value(
+                    'field',
+                    $db_check,
+                    is_int($value)? 'id' : $this->resolveModelFieldName($field)
+                );
+                $db_check['params'] = Util::arrayValue(
+                    'params',
+                    $db_check,
+                    [$value]
+                );
             }
+            $db_check['params'] = Util::arrayValue('params', $db_check);
 
             $check_if = $db_check['if'];
             $method = Util::value($check_if, $this->getDBChecksMethodMap(), 'null');
@@ -674,17 +683,17 @@ class Handler
 
             $this->_rule_options[$field]['type'] = $this->_filters[$field]['type'] = $type;
 
-            $require_if = Util::arrayValue('requireIf', $rule, []);
-            $condition = Util::value('condition', $require_if, '');
+            $required_if = Util::arrayValue(['requiredIf', 'requireIf'], $rule, []);
+            $condition = Util::value('condition', $required_if, '');
 
             if ($condition !== '')
             {
                 $required = false;
 
-                $_field = Util::value('field', $require_if, '');
+                $_field = Util::value('field', $required_if, '');
                 $_field_value = Util::value($_field, $this->_source);
 
-                $_value = Util::value('value', $require_if, '');
+                $_value = Util::value('value', $required_if, '');
 
                 //checkbox and radio inputs are only set if they are checked
                 switch(strtolower($condition))
@@ -713,7 +722,7 @@ class Handler
                 }
                 $rule['required'] = $required;
             }
-            Util::unsetFromArray('requireIf', $rule);
+            Util::unsetFromArray(['requiredIf', 'requireIf'], $rule);
 
             //boolean fields are optional by default
             if (Util::keyNotSetOrTrue('required', $rule) && $type !== 'bool')
