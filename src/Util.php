@@ -17,7 +17,7 @@ class Util
      *@param mixed [$default=null] - the default value to return if otherwise
      *@return mixed
     */
-    public function value(string $key, array $arr, $default = null)
+    public static function value(string $key, array $arr, $default = null)
     {
         if (array_key_exists($key, $arr))
             return $arr[$key];
@@ -34,7 +34,7 @@ class Util
      *@param array [$default=[]] - the default value to return if otherwise
      *@return array
     */
-    public function arrayValue(string $key, array $arr, array $default = [])
+    public static function arrayValue(string $key, array $arr, array $default = [])
     {
         if (array_key_exists($key, $arr) && is_array($arr[$key]))
             return $arr[$key];
@@ -49,7 +49,7 @@ class Util
      *@param array $arr - the array
      *@return bool
     */
-    public function keyNotSetOrTrue(string $key, array $arr)
+    public static function keyNotSetOrTrue(string $key, array $arr)
     {
         if (!array_key_exists($key, $arr) || $arr[$key])
             return true;
@@ -64,7 +64,7 @@ class Util
      *@param array $arr - the array
      *@return bool
     */
-    public function keySetAndTrue(string $key, array $arr)
+    public static function keySetAndTrue(string $key, array $arr)
     {
         if (array_key_exists($key, $arr) && $arr[$key])
             return true;
@@ -77,7 +77,7 @@ class Util
      *
      *@param mixed $value - the value
     */
-    public function isNumeric($value)
+    public static function isNumeric($value)
     {
         $value = strval($value);
         if (preg_match('/^[-+.]?\d+/', $value))
@@ -92,7 +92,7 @@ class Util
      *@param string $key - the array key
      *@param array $arr - the array
     */
-    public function unsetFromArray(string $key, array &$arr)
+    public static function unsetFromArray(string $key, array &$arr)
     {
         if (array_key_exists($key, $arr))
             unset($arr[$key]);
@@ -105,7 +105,7 @@ class Util
      *@param mixed $value - the value
      *@return array
     */
-    public function makeArray($value)
+    public static function makeArray($value)
     {
         if(is_array($value))
             return $value;
