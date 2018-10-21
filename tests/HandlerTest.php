@@ -247,9 +247,9 @@ class HandlerTest extends TestCase
     }
 
     /**
-     * return test data used for testing requireIf conditions
+     * return test data used for testing requiredIf conditions
     */
-    public function requireIfTestDataProvider()
+    public function requiredIfTestDataProvider()
     {
         return [
             //test not checked condition
@@ -271,7 +271,7 @@ class HandlerTest extends TestCase
                             'from' => 1,
                             'to' => 12
                         ],
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notChecked',
                             'field' => 'is-current-work'
                         ],
@@ -282,7 +282,7 @@ class HandlerTest extends TestCase
                             'from' => 1920,
                             'to' => '{CURRENT_YEAR}',
                         ],
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notChecked',
                             'field' => 'is-current-work'
                         ],
@@ -316,7 +316,7 @@ class HandlerTest extends TestCase
                             'from' => 1,
                             'to' => 12
                         ],
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notChecked',
                             'field' => 'is-current-work'
                         ],
@@ -327,7 +327,7 @@ class HandlerTest extends TestCase
                             'from' => 1920,
                             'to' => date('Y'),
                         ],
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notChecked',
                             'field' => 'is-current-work'
                         ],
@@ -356,7 +356,7 @@ class HandlerTest extends TestCase
                     ],
                     'email' => [
                         'type' => 'email',
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'checked',
                             'field' => 'join-newsletter'
                         ],
@@ -385,7 +385,7 @@ class HandlerTest extends TestCase
                     ],
                     'email' => [
                         'type' => 'email',
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'checked',
                             'field' => 'join-newsletter'
                         ],
@@ -413,7 +413,7 @@ class HandlerTest extends TestCase
                     ],
                     'email' => [
                         'type' => 'email',
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'checked',
                             'field' => 'join-newsletter'
                         ],
@@ -451,7 +451,7 @@ class HandlerTest extends TestCase
 
                     //need to
                     'calling-code' => [
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notEquals',
                             'field' => 'country',
                             'value' => 'ng'
@@ -487,7 +487,7 @@ class HandlerTest extends TestCase
 
                     //need to
                     'calling-code' => [
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'notEqual',
                             'field' => 'country',
                             'value' => 'ng'
@@ -522,7 +522,7 @@ class HandlerTest extends TestCase
                     //tell us your salary demand if you are in nigeria, other countries
                     //are paid equal amount of $50,000 yearly
                     'salary-demand' => [
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'Equal',
                             'field' => 'country',
                             'value' => 'ng'
@@ -557,7 +557,7 @@ class HandlerTest extends TestCase
                     //tell us your salary demand if you are in nigeria, other countries
                     //are paid equal amount of $50,000 yearly
                     'salary-demand' => [
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'Equal',
                             'field' => 'country',
                             'value' => 'ng'
@@ -593,7 +593,7 @@ class HandlerTest extends TestCase
                     //tell us your salary demand if you are in nigeria, other countries
                     //are paid equal amount of $50,000 yearly
                     'salary-demand' => [
-                        'requireIf' => [
+                        'requiredIf' => [
                             'condition' => 'Equal',
                             'field' => 'country',
                             'value' => 'ng'
@@ -903,9 +903,9 @@ class HandlerTest extends TestCase
     }
 
     /**
-     *@dataProvider requireIfTestDataProvider
+     *@dataProvider requiredIfTestDataProvider
     */
-    public function testRequireIfConditions(...$args)
+    public function testrequiredIfConditions(...$args)
     {
         $this->executeHandlerFeature(...$args);
     }
