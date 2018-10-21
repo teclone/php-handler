@@ -9,9 +9,9 @@ Forensic Handler is a php module that sits independently between the controller 
 
 It makes the validation process easy and requires you to just define the data validation rules which are just php arrays.
 
-The most interesting part is how easy it is to validate array of field data and files and the wide range of validation rule types that it affords you. It is also extensible so that you can define more validation rules if the need be. See [Writing Your Own Custom Validation Types](#writing-your-custom-validation-types) for instructions
+The most interesting part is how easy it is to validate array of field data and files and the wide range of validation rule types that it affords you. It is also extensible so that you can define more validation rules if the need be. See [How to Write Your Custom Validation Types](#how-to-write-your-custom-validation-types) for instructions
 
-Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract `DBCheckerAbstract` class. This makes it not tied to any framework or ORM. See [implementing The DBCheckerAbstract Validation](#implementing-the-dbcheckerabstract-validation) for instructions.
+Regarding database integrity checks, it is extensible enough to leave the db check implementation up to you by defining an abstract `DBCheckerAbstract` class. This makes it not tied to any framework or ORM. See [How To Implement the DBCheckerAbstract Interface](#how-to-implement-the-dbcheckerabstract-interface) for instructions.
 
 ## Getting Started
 
