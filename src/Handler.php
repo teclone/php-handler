@@ -128,7 +128,7 @@ class Handler
      *
      *@return array
     */
-    protected function getRuleTypesMethodMap()
+    protected function getRuleTypesMethodMap(): array
     {
         return [
             //text validator
