@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/harrison-ifeanyichukwu/handler.svg?branch=master)](https://travis-ci.org/harrison-ifeanyichukwu/handler)
 [![Coverage Status](https://coveralls.io/repos/github/harrison-ifeanyichukwu/handler/badge.svg?branch=master)](https://coveralls.io/github/harrison-ifeanyichukwu/handler?branch=master)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
-![Packagist](https://img.shields.io/packagist/dt/forensic/feed-parser.svg)
+![Packagist](https://img.shields.io/packagist/dt/forensic/handler.svg)
 
 Forensic Handler is a php module that sits independently between the controller and the model, performing request data validation, serialization and integrity checks. It is easy to setup and independent of any php framework and ORMs.
 
