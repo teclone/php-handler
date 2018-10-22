@@ -191,7 +191,7 @@ $rules = [
     'subscribe-newsletter' => [
         'type' => 'boolean',
     ],
-    //email is required if user checks the subscribe checkbox, else, do not require if
+    //email is required if user checks the subscribe checkbox, else, do not require it
     'email' => [
         'type' => 'email',
         'requireIf' => [
@@ -205,7 +205,7 @@ $rules = [
 
 ## Validation Filters
 
-Filters are applied to the field values prior to validations. You can use filters to modify field values prior to validations. The available filters include:
+Filters are applied to the field values prior to validations. You can use filters to modify field values prior to validation. The available filters include:
 
 1. **decode**: Call php `urldecode()` function on the field value(s). Defaults to true
 
@@ -238,7 +238,7 @@ $rules = [
 
 ## Validation Rule Types
 
-The module defines lots of validation rule types that covers a wide range of validation requirements. These includes the following:
+The module defines lots of validation rule types that covers a wide range of validation cases. These includes the following:
 
 - [Limiting Rule Validation](#limiting-rule-validation)
 
@@ -251,6 +251,10 @@ The module defines lots of validation rule types that covers a wide range of val
 - [Range Validation](#range-validation)
 
 - [Choice Validation](#choice-validation)
+
+- [Email Validation](#email-validation)
+
+- [URL Validation](#url-validation)
 
 - [Numeric Validation](#numeric-validation)
 
@@ -616,7 +620,7 @@ $rules => [
 ];
 ```
 
-### Image Validation
+### Image File Validation
 
 The shortest way to validate image files is to use the `image` type option. The accepted mimes for images include **JPEG**, **PNG** and **GIF**.
 
