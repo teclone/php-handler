@@ -362,6 +362,21 @@ class Handler
     }
 
     /**
+     * tests if a value is falsy
+     *
+     *@param $value - the value to test
+    */
+    protected function valueIsFalsy($value)
+    {
+        $value = strval($value);
+
+        if (preg_match('/^(false|off|0|nil|null|no|undefined)$/i', $value) || $value === '')
+            return true;
+        else
+            return false;
+    }
+
+    /**
      * runs data filteration on the given value
      *
      *@param array|string|null $value - the value or array of values
@@ -425,7 +440,7 @@ class Handler
                 break;
 
             case 'bool':
-                if (preg_match('/^(false|off|0|nil|null|no|undefined)$/i', $value) || $value === '')
+                if ($this->valueIsFalsy($value))
                     $value = false;
                 else
                     $value = true;
@@ -699,12 +714,12 @@ class Handler
                 switch(strtolower($condition))
                 {
                     case 'checked':
-                        if (!is_null($_field_value))
+                        if (!$this->valueIsFalsy($_field_value))
                             $required = true;
                         break;
 
                     case 'notchecked':
-                        if (is_null($_field_value))
+                        if ($this->valueIsFalsy($_field_value))
                             $required = true;
                         break;
 
