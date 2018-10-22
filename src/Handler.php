@@ -934,7 +934,7 @@ class Handler
      *@return bool
      *@throws StateException - throws error if the execute method has not been called
     */
-    public function succeeds()
+    public function succeeds(): bool
     {
         if (!$this->_executed)
             throw new StateException('Cant check state because execute method has not been called');
@@ -948,7 +948,7 @@ class Handler
      *@return bool
      *@throws StateException - throws error if the execute method has not been called
     */
-    public function fails()
+    public function fails(): bool
     {
         return !$this->succeeds();
     }
@@ -976,7 +976,7 @@ class Handler
      *
      *@return array
     */
-    public function getErrors()
+    public function getErrors(): array
     {
         return $this->_errors;
     }
@@ -1040,7 +1040,7 @@ class Handler
      *
      *@return bool
     */
-    public function modelCamelizeFields(bool $status = null)
+    public function modelCamelizeFields(bool $status = null): bool
     {
         if (!is_null($status))
             $this->_model_camelize_fields = $status;
